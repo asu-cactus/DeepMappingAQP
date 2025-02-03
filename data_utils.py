@@ -25,9 +25,15 @@ def read_data(data_name):
         )
     elif data_name == "pm25":
         df = pd.read_csv(
-            "data/pm25/PRSA_data.csv",
+            "data/pm25/data.csv",
             header=0,
             usecols=["pm2.5", "DEWP", "TEMP", "PRES"],
+        )
+    elif data_name == "ccpp":
+        df = pd.read_csv(
+            "data/ccpp/ccpp_data.csv",
+            header=0,
+            usecols=["AT", "V", "AP", "RH", "PE"],
         )
     else:
         raise ValueError(f"Unknown data_name: {data_name}")
@@ -96,7 +102,7 @@ def prepare_training_data(
 
 
 if __name__ == "__main__":
-    df = read_data("pm25")
+    df = read_data("ccpp")
     # df = read_data("flights")
     # prepare_training_data(
     #     df,

@@ -69,7 +69,7 @@ class DataGen:
             dest="samplefile",
             action="store",
             help="Path to the sample file",
-            default="../data/flights/sample.csv",
+            default="data/flights/sample.csv",
         )
         parser.add_option(
             "-y",
@@ -77,7 +77,7 @@ class DataGen:
             dest="samplejsonfile",
             action="store",
             help="Path to the sample file",
-            default="../data/flights/sample.json",
+            default="data/flights/sample.json",
         )
         parser.add_option(
             "-n",

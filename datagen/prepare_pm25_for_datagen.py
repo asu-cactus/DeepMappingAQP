@@ -1,7 +1,10 @@
 import pandas as pd
+import numpy as np
 
 df = pd.read_csv(
-    "../data/pm25/PRSA_data.csv", header=0, usecols=["pm2.5", "DEWP", "TEMP", "PRES"]
+    "data/pm25/PRSA_data.csv",
+    header=0,
+    usecols=["pm2.5", "DEWP", "TEMP", "PRES"],
 )
 df = df.dropna()
-df.to_csv("../data/pm25/sample.csv", index=False)
+df.astype(np.int32).to_csv("data/pm25/sample.csv", index=False)

@@ -1,2 +1,7 @@
 data/
+!data/ccpp/ccpp_data.csv
+!data/ccpp/sample.json
+!data/pm25/PRSA_data.csv
+!data/pm25/sample.json
 __pycache__/
+outputs/
