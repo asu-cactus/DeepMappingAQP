@@ -1,4 +1,4 @@
-### This script is copied from https://github.com/IDEBench/IDEBench-public/blob/master/datagen.py ###
+### This script is modified from https://github.com/IDEBench/IDEBench-public/blob/master/datagen.py ###
 
 import json
 import math
@@ -14,6 +14,7 @@ import scipy.interpolate as interpolate
 from optparse import OptionParser
 import time
 from collections import OrderedDict
+import pdb
 
 current_milli_time = lambda: int(round(time.time() * 1000))
 
@@ -43,7 +44,6 @@ class DataGen:
             dest="prevent_zero",
             action="store_true",
             help="Size of the dataset in MB",
-            default=True,
         )
         parser.add_option(
             "-s",
@@ -173,13 +173,12 @@ class DataGen:
         self.df = pd.read_csv(
             self.options.samplefile, nrows=self.options.numsamples, header=0
         )
-
+        self.quant_col_names = [
+            col["field"]
+            for col in self.sample_json["tables"]["fact"]["fields"]
+            if col["type"] == "quantitative"
+        ]
         if self.options.prevent_zero:
-            self.quant_col_names = [
-                col["field"]
-                for col in self.sample_json["tables"]["fact"]["fields"]
-                if col["type"] == "quantitative"
-            ]
             for quant_col_name in self.quant_col_names:
                 self.df[quant_col_name] = (
                     self.df[quant_col_name] - self.df[quant_col_name].min()
@@ -242,6 +241,7 @@ class DataGen:
         num_batches = int(math.ceil(self.options.size / self.options.batchsize))
 
         st = current_milli_time()
+
         # process all batches
         for batch_i in range(num_batches):
             print(" %i/%i batches processed." % (batch_i, num_batches))

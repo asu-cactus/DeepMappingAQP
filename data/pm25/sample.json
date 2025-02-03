@@ -1,0 +1,29 @@
+{
+    "tables": {
+        "fact": {
+            "name": "tbl_pm25",
+            "fields": [
+                {
+                    "field": "pm2.5",
+                    "type": "quantitative",
+                    "cast": "int"
+                },
+                {
+                    "field": "DEWP",
+                    "type": "quantitative",
+                    "cast": "int"
+                },
+                {
+                    "field": "TEMP",
+                    "type": "quantitative",
+                    "cast": "int"
+                },
+                {
+                    "field": "PRES",
+                    "type": "quantitative",
+                    "cast": "int"
+                }
+            ]
+        }
+    }
+}

@@ -1,0 +1,25 @@
+{
+    "tables": {
+        "fact": {
+            "name": "tbl_ccpp",
+            "fields": [
+                {
+                    "field": "AT",
+                    "type": "quantitative"
+                },
+                {
+                    "field": "AP",
+                    "type": "quantitative"
+                },
+                {
+                    "field": "RH",
+                    "type": "quantitative"
+                },
+                {
+                    "field": "PE",
+                    "type": "quantitative"
+                }
+            ]
+        }
+    }
+}

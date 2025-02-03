@@ -1,4 +1,5 @@
-data/
+data/*/*
+data/*.zip
 !data/ccpp/ccpp_data.csv
 !data/ccpp/sample.json
 !data/pm25/PRSA_data.csv
