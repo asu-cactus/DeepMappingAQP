@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
+import torch
 import math
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import pdb
 
 import warnings
@@ -8,18 +10,24 @@ import warnings
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 
-def read_data(data_name):
+def read_data(data_name: str) -> pd.DataFrame:
     if data_name == "store_sales":
 
         df = pd.read_csv(
             "data/tpc-ds/store_sales.dat",
             sep="|",
-            usecols=[10, 13, 22],
-            names=["quantity", "sales_price", "net_profit"],
+            usecols=[10, 11, 12, 13, 22],
+            names=[
+                "quantity",
+                "wholesale_cost",
+                "list_price",
+                "sales_price",
+                "net_profit",
+            ],
         )
     elif data_name == "flights":
         df = pd.read_csv(
-            "data/flights/dataset.csv",
+            "data/flights/sample.csv",
             header=0,
             usecols=["UNIQUE_CARRIER", "DEST_STATE_ABR", "TAXI_OUT", "DISTANCE"],
         )
@@ -37,7 +45,7 @@ def read_data(data_name):
         )
     else:
         raise ValueError(f"Unknown data_name: {data_name}")
-    pdb.set_trace()
+
     return df
 
 
@@ -49,7 +57,10 @@ def bin_and_cumsum(df, indep, dep, resolution):
     indep_max = df[indep].max()
 
     num_max = math.ceil(indep_max / resolution)
-    num_min = math.floor(indep_min / resolution)
+    if indep_min % resolution == 0:
+        num_min = math.floor(indep_min / resolution) - 1
+    else:
+        num_min = math.floor(indep_min / resolution)
     print(
         f"""
     min indep: {indep_min}, max indep: {indep_max}
@@ -65,44 +76,75 @@ def bin_and_cumsum(df, indep, dep, resolution):
     return bin_edges, cum_sum
 
 
+def run_groupby(df, groupby, indep, dep, resolution):
+    Xs = []
+    ys = []
+    unique_keys = df[groupby].unique()
+    for key in unique_keys:
+        print(f"Group: {key}")
+        df_group = df[df[groupby] == key]
+
+        bin_edges, cum_sum = bin_and_cumsum(df_group, indep, dep, resolution)
+        Xs.append(np.array(bin_edges[1:]))
+        ys.append(np.array(cum_sum))
+    return Xs, ys
+
+
 def prepare_training_data(
     df: pd.DataFrame,
     indep: str,
     dep: str,
     resolution: float,
-    groupby: str = None,
-    selection_key: list[str] = None,
-    selections: list[str] = None,
-):
+    output_scale: float,
+    # groupby: str = None,
+    # selection: tuple[list[str], list[str]] = None,
+    do_standardize: bool = True,
+) -> tuple[np.ndarray, np.ndarray, StandardScaler, MinMaxScaler]:
     print(f"Resolution: {resolution}")
-    if selections is not None and selection_key is not None:
-        for selection, key in zip(selections, selection_key):
-            df = df[df[key] == selection]
-    if groupby is not None:
-        Xs = []
-        ys = []
-        unique_keys = df[groupby].unique()
-        for key in unique_keys:
-            print(f"Group: {key}")
-            df_group = df[df[groupby] == key]
-
-            bin_edges, cum_sum = bin_and_cumsum(df_group, indep, dep, resolution)
-            Xs.append(np.array(bin_edges[1:]))
-            ys.append(np.array(cum_sum))
-        pdb.set_trace()
-        return Xs, ys
+    # if selection is not None:
+    #     selection_key, selections = selection
+    #     for selection, key in zip(selections, selection_key):
+    #         df = df[df[key] == selection]
 
     bin_edges, cum_sum = bin_and_cumsum(df, indep, dep, resolution)
 
-    pdb.set_trace()
-    X = np.array(bin_edges[1:])
-    y = np.array(cum_sum)
+    X = np.array(bin_edges[1:]).reshape(-1, 1)
+    y = np.array(cum_sum).reshape(-1, 1)
     assert len(X) == len(y)
-    return X, y
+    if do_standardize:
+        return standardize_data(X, y, output_scale)
+    else:
+        return X, y
+
+
+def standardize_data(
+    X: np.array, y: np.array, output_scale: float
+) -> tuple[np.array, np.array, StandardScaler, MinMaxScaler]:
+    X_scaler = StandardScaler()
+    y_scaler = MinMaxScaler(feature_range=(-output_scale, output_scale))
+    X = X_scaler.fit_transform(X)
+    y = y_scaler.fit_transform(y)
+    return X, y, X_scaler, y_scaler
+
+
+def get_dataloader(X, y, batch_size):
+    X = torch.tensor(X, dtype=torch.float32)
+    y = torch.tensor(y, dtype=torch.float32)
+    dataset = torch.utils.data.TensorDataset(X, y)
+    dataloader = torch.utils.data.DataLoader(
+        dataset, batch_size=batch_size, pin_memory=True
+    )
+    return dataloader
 
 
 if __name__ == "__main__":
-    df = read_data("pm25")
+    df = read_data("store_sales")
+
+    # df = read_data("ccpp")
+
+    # df = read_data("pm25")
+    # prepare_training_data(df, "TEMP", "pm2.5", 1)
+
     # df = read_data("flights")
     # prepare_training_data(
     #     df,
