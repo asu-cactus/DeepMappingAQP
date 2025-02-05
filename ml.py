@@ -5,6 +5,9 @@ import numpy as np
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from tqdm import tqdm
 import pdb
+import warnings
+
+warnings.filterwarnings("error")
 
 
 def get_model(hidden_size: int) -> nn.Module:
@@ -80,7 +83,6 @@ def create_aux_structure(
     origin_y = y_scaler.inverse_transform(y)
     aux_array[selected_index] = origin_y[selected_index]
     aux_array = aux_array.reshape(-1)
-    pdb.set_trace()
 
     return aux_array
 
@@ -93,6 +95,8 @@ def test(
     y_scaler: MinMaxScaler,
     gpu: int,
     query_path: str,
+    X_min: float,
+    resolution: float,
 ):
 
     device = torch.device(f"cuda:{gpu}" if torch.cuda.is_available() else "cpu")
@@ -103,23 +107,23 @@ def test(
         queries = npzfile[query_percent][:nqueries]
 
         # The first column is the start of the query range and the second column is the end
-        X = np.concatenate((queries[:, 0], queries[:, 1]), axis=0)
-        pdb.set_trace()
-        X = X_scaler.transform(X)
+        total_rel_error = 0.0
+        for query in queries:
+            X, y = query[:2], query[2]
+            aux_indices = ((X - X_min) // resolution).astype(int)
+            aux_out = aux_structure[aux_indices]
+            X = X_scaler.transform(X.reshape(-1, 1))
+            with torch.no_grad():
+                X = torch.tensor(X, dtype=torch.float32).to(device)
+                y_pred = model(X).cpu().numpy()
+            y_pred = y_scaler.inverse_transform(y_pred).reshape(-1)
 
-        with torch.no_grad():
-            X = torch.tensor(X, dtype=torch.float32).to(device)
-            y_pred = model().cpu().numpy()
-        y_pred = y_scaler.inverse_transform(y_pred).reshape(-1)
-        y_pred = y_pred[nqueries:] - y_pred[:nqueries]
+            y_hat = np.where(aux_out != 0, aux_out, y_pred)
+            y_hat = y_hat[1] - y_hat[0]
 
-        y_hat = np.where(aux_structure != 0, aux_structure, y_pred)  # wrong
-        # Compute the relative error
-        y = queries[:, 2].reshape(-1)
-        rel_errors = np.absolute(y_hat - y) / y
-        avg_rel_error = np.mean(rel_errors)
+            rel_error = np.absolute(y_hat - y) / (y + 1e-6)
+            total_rel_error += rel_error
+        avg_rel_error = total_rel_error / len(queries)
         print(
-            f"Query percent: {query_percent}, Average relative error: {avg_rel_error:.4f}"
+            f"Query percent: {query_percent}, Avg relative error: {avg_rel_error:.4f}"
         )
-
-        pdb.set_trace()

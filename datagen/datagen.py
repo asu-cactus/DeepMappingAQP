@@ -52,7 +52,7 @@ class DataGen:
             action="store",
             type=int,
             help="Number of samples to generate",
-            default=50000,
+            default=500000,
         )
         parser.add_option(
             "-b",

@@ -27,7 +27,7 @@ def read_data(data_name: str) -> pd.DataFrame:
         )
     elif data_name == "flights":
         df = pd.read_csv(
-            "data/flights/sample.csv",
+            "data/flights/dataset.csv",
             header=0,
             usecols=["UNIQUE_CARRIER", "DEST_STATE_ABR", "TAXI_OUT", "DISTANCE"],
         )

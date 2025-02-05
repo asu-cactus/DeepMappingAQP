@@ -4,9 +4,9 @@ resolution_dict = {
     "DEWP": 1,
     "TEMP": 1,
     "PRES": 1,
-    "AT": 0.02,
-    "AP": 0.02,
-    "RH": 0.02,
+    "AT": 0.01,
+    "AP": 0.01,
+    "RH": 0.01,
     "DISTANCE": 1,
     "list_price": 0.05,
 }
@@ -28,8 +28,8 @@ def parse_args() -> argparse.Namespace:
     )
     # Training hyperparameters
     parser.add_argument("--units", type=int, default=500, help="Number of hidden units")
-    parser.add_argument("--epochs", type=int, default=1000, help="Number of epochs")
-    parser.add_argument("--print_every", type=int, default=100, help="Print every")
+    parser.add_argument("--epochs", type=int, default=5000, help="Number of epochs")
+    parser.add_argument("--print_every", type=int, default=500, help="Print every")
     parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate")
     parser.add_argument("--batch_size", type=int, default=1000, help="Batch size")
     parser.add_argument("--gpu", type=int, default=0, help="GPU ID")
