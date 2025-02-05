@@ -19,7 +19,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--indep", type=str, help="Independent variable")
     parser.add_argument("--dep", type=str, help="Dependent variable")
     # Auxilirary structure arguments
-    parser.add_argument("--allowed_error", type=float, default=1e-3, help="Point error")
+    parser.add_argument("--allowed_error", type=float, default=5e-4, help="Point error")
     parser.add_argument(
         "--output_scale",
         type=float,

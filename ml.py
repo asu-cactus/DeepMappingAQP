@@ -6,6 +6,7 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from tqdm import tqdm
 import pdb
 import warnings
+from time import time
 
 warnings.filterwarnings("error")
 
@@ -107,6 +108,7 @@ def test(
         queries = npzfile[query_percent][:nqueries]
 
         # The first column is the start of the query range and the second column is the end
+        start = time()
         total_rel_error = 0.0
         for query in queries:
             X, y = query[:2], query[2]
@@ -121,12 +123,10 @@ def test(
             y_hat = np.where(aux_out != 0, aux_out, y_pred)
             y_hat = y_hat[1] - y_hat[0]
 
-            if y == 0:
-                rel_error = 0
-            else:
-                rel_error = np.absolute(y_hat - y) / y
+            rel_error = np.absolute(y_hat - y) / (y + 1e-6)
             total_rel_error += rel_error
         avg_rel_error = total_rel_error / len(queries)
+        print(f"Query percent: {query_percent} executed in {time() - start} seconds")
         print(
             f"Query percent: {query_percent}, Avg relative error: {avg_rel_error:.4f}"
         )

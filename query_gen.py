@@ -58,7 +58,9 @@ def generate_queries_v2(nqueries):
     for query_percent in query_percents:
         # Random sample nqueries from X and y
         n_resolution = int((X_range * query_percent) / args.resolution)
-        assert n_resolution > 0
+        if not n_resolution > 0:
+            continue
+
         indices = np.random.choice(len(X) - n_resolution - 1, nqueries, replace=True)
         start = X[indices]
         end = X[indices + n_resolution]

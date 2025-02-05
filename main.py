@@ -8,6 +8,8 @@ from memory_profiler import memory_usage
 def main():
     args = parse_args()
     df = read_data(args.data_name)
+
+    prepare_start = time()
     X, y, X_scaler, y_scaler = prepare_training_data(
         df, args.indep, args.dep, args.resolution, args.output_scale
     )
@@ -17,23 +19,12 @@ def main():
     aux_structure = create_aux_structure(
         model, X, y, y_scaler, args.allowed_error, args.output_scale, args.gpu
     )
+    print(f"Preparing time: {time() - prepare_start}")
+
     query_path = f"query/{args.data_name}_{args.indep}_sum.npz"
 
     X_min = df[args.indep].min()
 
-    start_time = time()
-
-    # test(
-    #     args.nqueries,
-    #     model,
-    #     aux_structure,
-    #     X_scaler,
-    #     y_scaler,
-    #     args.gpu,
-    #     query_path,
-    #     X_min,
-    #     args.resolution,
-    # )
     mem = max(
         memory_usage(
             (
@@ -52,7 +43,7 @@ def main():
             )
         )
     )
-    print(f"Time: {time() - start_time}")
+
     print("Maximum memory used for : {} MiB".format(mem))
 
 
