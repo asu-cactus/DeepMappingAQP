@@ -19,7 +19,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--indep", type=str, help="Independent variable")
     parser.add_argument("--dep", type=str, help="Dependent variable")
     # Auxilirary structure arguments
-    parser.add_argument("--allowed_error", type=float, default=5e-4, help="Point error")
+    parser.add_argument("--allowed_error", type=float, default=1e-3, help="Point error")
     parser.add_argument(
         "--output_scale",
         type=float,
@@ -34,7 +34,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch_size", type=int, default=1000, help="Batch size")
     parser.add_argument("--gpu", type=int, default=0, help="GPU ID")
     # Test arguments
-    parser.add_argument("--nqueries", type=int, default=1000, help="Number of queries")
+    parser.add_argument("--nqueries", type=int, default=10, help="Number of queries")
 
     args = parser.parse_args()
     if args.data_name == "store_sales":

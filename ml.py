@@ -121,7 +121,10 @@ def test(
             y_hat = np.where(aux_out != 0, aux_out, y_pred)
             y_hat = y_hat[1] - y_hat[0]
 
-            rel_error = np.absolute(y_hat - y) / (y + 1e-6)
+            if y == 0:
+                rel_error = 0
+            else:
+                rel_error = np.absolute(y_hat - y) / y
             total_rel_error += rel_error
         avg_rel_error = total_rel_error / len(queries)
         print(
