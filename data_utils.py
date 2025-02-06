@@ -29,13 +29,13 @@ def read_data(data_name: str) -> pd.DataFrame:
         df = pd.read_csv(
             "data/flights/dataset.csv",
             header=0,
-            usecols=["UNIQUE_CARRIER", "DEST_STATE_ABR", "TAXI_OUT", "DISTANCE"],
+            usecols=["TAXI_OUT", "DISTANCE"],
         )
     elif data_name == "pm25":
         df = pd.read_csv(
             "data/pm25/dataset.csv",
             header=0,
-            usecols=["pm2.5", "DEWP", "TEMP", "PRES"],
+            usecols=["pm25", "DEWP", "TEMP", "PRES"],
         )
     elif data_name == "ccpp":
         df = pd.read_csv(

@@ -40,9 +40,9 @@ def create_verdict_conn():
 def create_scramble_table(verdict_conn):
     # create scramble table
     start = time()
-    # verdict_conn.sql(f"DROP ALL SCRAMBLE {data_name}.{dep};")
+    verdict_conn.sql(f"DROP ALL SCRAMBLE {data_name}.{dep};")
     verdict_conn.sql(
-        "CREATE SCRAMBLE {data_name}.{dep}_scrambled from {data_name}.{dep}"
+        f"CREATE SCRAMBLE {data_name}.{dep}_scrambled from {data_name}.{dep}"
     )
     print(f"Scramble table created in {time() - start} seconds")
 
@@ -74,11 +74,17 @@ def query(verdict_conn, queries):
 
 if __name__ == "__main__":
 
+    task_type = "count"
+
     data_name = "ccpp"
     indep = "RH"
     dep = "PE"
+
+    # data_name = "pm25"
+    # indep = "PRES"
+    # dep = "pm25"
     nqueries = 10
-    npzfile = np.load(f"query/{data_name}_{indep}_sum.npz")
+    npzfile = np.load(f"query/{data_name}_{indep}_{task_type}.npz")
     verdict_conn = create_verdict_conn()
 
     add_data()

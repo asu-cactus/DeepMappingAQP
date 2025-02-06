@@ -35,6 +35,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--gpu", type=int, default=0, help="GPU ID")
     # Test arguments
     parser.add_argument("--nqueries", type=int, default=10, help="Number of queries")
+    parser.add_argument("--task_type", type=str, default="sum", help="Task type")
 
     args = parser.parse_args()
     if args.data_name == "store_sales":
@@ -44,7 +45,7 @@ def parse_args() -> argparse.Namespace:
         args.indep = "DISTANCE"
         args.dep = "TAXI_OUT"
     elif args.data_name == "pm25":
-        args.dep = "pm2.5"
+        args.dep = "pm25"
     elif args.data_name == "ccpp":
         args.dep = "PE"
 

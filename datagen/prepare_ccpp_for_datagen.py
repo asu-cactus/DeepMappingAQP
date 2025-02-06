@@ -1,8 +1,11 @@
 import pandas as pd
 import numpy as np
+import pdb
 
-pd.read_csv(
+df = pd.read_csv(
     "data/ccpp/ccpp_data.csv",
     header=0,
     usecols=["AT", "AP", "RH", "PE"],
-).to_csv("data/ccpp/sample.csv", index=False)
+)
+pdb.set_trace()
+# .to_csv("data/ccpp/sample.csv", index=False)

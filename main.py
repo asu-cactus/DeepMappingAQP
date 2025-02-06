@@ -21,7 +21,7 @@ def main():
     )
     print(f"Preparing time: {time() - prepare_start}")
 
-    query_path = f"query/{args.data_name}_{args.indep}_sum.npz"
+    query_path = f"query/{args.data_name}_{args.indep}_{args.task_type}.npz"
 
     X_min = df[args.indep].min()
 
