@@ -5,8 +5,8 @@ import numpy as np
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from tqdm import tqdm
 import pdb
+from time import perf_counter
 import warnings
-from time import time
 
 warnings.filterwarnings("error")
 
@@ -46,12 +46,10 @@ def train(
             loss.backward()
             optimizer.step()
 
-            if loss.item() < best_loss:
-                best_loss = loss.item()
-                best_state_dict = model.state_dict()
-
-            if epoch % print_every == 0:
-                total_loss += loss.item()
+        # Save the best model every epoch
+        if total_loss < best_loss:
+            best_loss = total_loss
+            best_state_dict = model.state_dict()
 
         if epoch % print_every == 0:
             print(f"Epoch: {epoch}, loss: {total_loss / len(dataloader):.4f}")
@@ -68,7 +66,7 @@ def create_aux_structure(
     y: np.array,
     y_scaler: MinMaxScaler,
     allowed_error: float,
-    output_scale: float,
+    output_size: float,
     gpu: int,
 ):
     model.eval()
@@ -78,7 +76,7 @@ def create_aux_structure(
         X = torch.tensor(X, dtype=torch.float32).to(device)
         y_pred = model(X).cpu().numpy()
     # Compute point relative error
-    error = np.absolute(y_pred - y) / (2 * output_scale)
+    error = np.absolute(y_pred - y) / output_size
 
     selected_index = error > allowed_error
     origin_y = y_scaler.inverse_transform(y)
@@ -97,6 +95,7 @@ def test(
     gpu: int,
     query_path: str,
     X_min: float,
+    total_sum: float,
     resolution: float,
 ):
 
@@ -108,8 +107,9 @@ def test(
         queries = npzfile[query_percent][:nqueries]
 
         # The first column is the start of the query range and the second column is the end
-        start = time()
+        start = perf_counter()
         total_rel_error = 0.0
+        total_error_II = 0.0
         for query in queries:
             X, y = query[:2], query[2]
             aux_indices = ((X - X_min) // resolution).astype(int)
@@ -124,9 +124,13 @@ def test(
             y_hat = y_hat[1] - y_hat[0]
 
             rel_error = np.absolute(y_hat - y) / (y + 1e-6)
+            error_II = np.absolute(y_hat - y) / total_sum
+
             total_rel_error += rel_error
+            total_error_II += error_II
+
         avg_rel_error = total_rel_error / len(queries)
-        print(f"Query percent: {query_percent} executed in {time() - start} seconds")
-        print(
-            f"Query percent: {query_percent}, Avg relative error: {avg_rel_error:.4f}"
-        )
+        avg_error_II = total_error_II / len(queries)
+        avg_time = (perf_counter() - start) / len(queries)
+        print(f"{query_percent} query:  executed in {avg_time} seconds on average.")
+        print(f"Avg rel error: {avg_rel_error:.4f}, Avg error II: {avg_error_II:.4f}")

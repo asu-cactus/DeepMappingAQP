@@ -11,7 +11,10 @@ import numpy as np
 
 def add_data():
     start = time()
-    df = pd.read_csv(f"data/{data_name}/dataset.csv", usecols=[dep, indep])
+    if data_name == "store_sales":
+        df = pd.read_csv(f"data/tpc-ds/dataset.csv", usecols=[dep, indep])
+    else:
+        df = pd.read_csv(f"data/{data_name}/dataset.csv", usecols=[dep, indep])
 
     mysql_conn = pymysql.connect(
         host="localhost", port=3306, user="root", passwd="", autocommit=True
@@ -57,7 +60,9 @@ def query(verdict_conn, queries):
         df = verdict_conn.sql(
             f"SELECT SUM({dep}) FROM {data_name}.{dep} WHERE {indep} BETWEEN {X[0]} AND {X[1]}"
         )
-        y_hat = df.iloc[0, 0] if df.iloc[0, 0] is not None else 0
+        if not isinstance(df.iloc[0, 0], float):
+            print(f"Irregular result: {df.iloc[0, 0]}")
+        y_hat = df.iloc[0, 0] if isinstance(df.iloc[0, 0], float) else 0
         relative_error = abs(y - y_hat) / (y + 1e-6)
         total_rel_error += relative_error
     print(f"Average relative error: {total_rel_error/nqueries}")
@@ -76,13 +81,22 @@ if __name__ == "__main__":
 
     task_type = "count"
 
-    data_name = "ccpp"
-    indep = "RH"
-    dep = "PE"
+    data_name = "store_sales"
+    indep = "list_price"
+    dep = "wholesale_cost"
+
+    # data_name = "ccpp"
+    # indep = "RH"
+    # dep = "PE"
 
     # data_name = "pm25"
     # indep = "PRES"
     # dep = "pm25"
+
+    # data_name = "flights"
+    # indep = "DISTANCE"
+    # dep = "TAXI_OUT"
+
     nqueries = 10
     npzfile = np.load(f"query/{data_name}_{indep}_{task_type}.npz")
     verdict_conn = create_verdict_conn()

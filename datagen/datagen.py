@@ -305,6 +305,7 @@ class DataGen:
         cast_cols = [
             col for col in self.sample_json["tables"]["fact"]["fields"] if "cast" in col
         ]
+
         for cast_col in cast_cols:
             if cast_col["cast"] == "int":
                 result_frame[cast_col["field"]] = result_frame[

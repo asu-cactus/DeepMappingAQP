@@ -7,4 +7,4 @@ pd.read_csv(
     sep="|",
     usecols=[11, 12],
     names=["wholesale_cost", "list_price"],
-).to_csv("data/tpc-ds/sample.csv", index=False)
+).dropna().to_csv("data/tpc-ds/sample.csv", index=False)
