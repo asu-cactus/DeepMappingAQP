@@ -35,11 +35,12 @@ def train(
     print_every: int,
     gpu: int,
     saved_path: str,
+    disable_tqdm: bool,
 ) -> nn.Module:
-    # # Load and return model if exist
-    # if os.path.exists(saved_path):
-    #     model.load_state_dict(torch.load(saved_path))
-    #     return model
+    # Load and return model if exist
+    if os.path.exists(saved_path):
+        model.load_state_dict(torch.load(saved_path, weights_only=True))
+        return model
 
     device = torch.device(f"cuda:{gpu}" if torch.cuda.is_available() else "cpu")
     model.train()
@@ -50,7 +51,7 @@ def train(
 
     best_loss = float("inf")
     best_state_dict = None
-    for epoch in tqdm(range(1, epochs + 1)):
+    for epoch in tqdm(range(1, epochs + 1), disable=disable_tqdm):
         total_loss = 0.0
         for X, y in dataloader:
             optimizer.zero_grad()
@@ -89,7 +90,7 @@ def create_aux_structure(
     device = torch.device(f"cuda:{gpu}" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
 
-    aux_array = np.ones_like(y) * AUX_EMPTY
+    aux_array = np.ones_like(y, dtype=np.float32) * AUX_EMPTY
 
     with torch.no_grad():
         X = torch.tensor(X, dtype=torch.float32).to(device)
@@ -102,14 +103,14 @@ def create_aux_structure(
     aux_array[selected_index] = origin_y[selected_index]
     aux_array = aux_array.reshape(-1)
 
-    # # Use to test if test() is correct
-    # origin_y = y_scaler.inverse_transform(y)
-    # aux_array = origin_y.reshape(-1)
+    # Use to test if test() is correct
+    origin_y = y_scaler.inverse_transform(y)
+    aux_array = origin_y.reshape(-1)
 
-    return aux_array
+    # return aux_array
 
     init_bit_list = [1 if aux != AUX_EMPTY else 0 for aux in aux_array]
-    init_list = [aux for aux in aux_array if aux != AUX_EMPTY]
+    init_list = aux_array[aux_array != AUX_EMPTY]
     aux_struct = AuxStruct(init_bit_list, init_list)
     return aux_struct
 
@@ -153,21 +154,21 @@ def test(
             upper_left_index = int(X_s_d1 * dim2_n_resol + X_e_d2)
             lower_left_index = int(X_s_d1 * dim2_n_resol + X_s_d2)
 
-            aux_outs = [
-                aux_struct[upper_right_index],
-                aux_struct[lower_right_index],
-                aux_struct[upper_left_index],
-                aux_struct[lower_left_index],
-            ]
             # aux_outs = [
-            #     aux_struct.get(index)
-            #     for index in [
-            #         upper_right_index,
-            #         lower_right_index,
-            #         upper_left_index,
-            #         lower_left_index,
-            #     ]
+            #     aux_struct[upper_right_index],
+            #     aux_struct[lower_right_index],
+            #     aux_struct[upper_left_index],
+            #     aux_struct[lower_left_index],
             # ]
+            aux_outs = [
+                aux_struct.get(index, AUX_EMPTY)
+                for index in [
+                    upper_right_index,
+                    lower_right_index,
+                    upper_left_index,
+                    lower_left_index,
+                ]
+            ]
 
             # Get the prediction from the model
             X = np.array(
@@ -210,4 +211,4 @@ def test(
         avg_error_II = total_error_II / len(queries)
         avg_time = (perf_counter() - start) / len(queries)
         print(f"{query_percent} query:  executed in {avg_time} seconds on average.")
-        print(f"Avg rel error: {avg_rel_error:.4f}, Avg error II: {avg_error_II:.4f}\n")
+        print(f"Avg rel error: {avg_rel_error:.6f}, Avg error II: {avg_error_II:.9f}\n")

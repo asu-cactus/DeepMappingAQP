@@ -17,6 +17,7 @@ def generate_1d_queries(nqueries):
         args.resolutions,
         args.ndim_input,
     )
+
     X_max, X_min = X[-1][0], X[0][0]
     X_range = X_max - X_min
     query_percents = [0.001, 0.01, 0.05, 0.1]
@@ -28,7 +29,7 @@ def generate_1d_queries(nqueries):
     queries = {}
     for query_percent in query_percents:
         # Random sample nqueries from X and y
-        n_resolution = int((X_range * query_percent) / args.resolution)
+        n_resolution = int((X_range * query_percent) / args.resolutions[0])
         if not n_resolution > 0:
             continue
 
@@ -103,4 +104,5 @@ def generate_2d_queries(nqueries):
 
 
 if __name__ == "__main__":
-    generate_2d_queries(nqueries=10000)
+    generate_1d_queries(nqueries=10000)
+    # generate_2d_queries(nqueries=10000)

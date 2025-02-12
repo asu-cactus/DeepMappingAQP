@@ -43,7 +43,14 @@ def main():
         f"saved_models/{args.data_name}_{args.task_type}_{args.ndim_input}D.pth"
     )
     train(
-        model, dataloader, args.lr, args.epochs, args.print_every, args.gpu, saved_path
+        model,
+        dataloader,
+        args.lr,
+        args.epochs,
+        args.print_every,
+        args.gpu,
+        saved_path,
+        args.disable_tqdm,
     )
 
     # Create aux structure

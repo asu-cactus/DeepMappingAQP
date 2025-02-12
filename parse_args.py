@@ -8,6 +8,7 @@ resolution_dict = {
     "AP": 0.02,
     "RH": 0.02,
     "DISTANCE": 1,
+    "ARR_DELAY": 1,
     "list_price": 0.05,
 }
 
@@ -38,13 +39,14 @@ def parse_args() -> argparse.Namespace:
     )
     # Training hyperparameters
     parser.add_argument(
-        "--units", type=int, default=1000, help="Number of hidden units"
+        "--units", type=int, default=2000, help="Number of hidden units"
     )
     parser.add_argument("--epochs", type=int, default=20000, help="Number of epochs")
     parser.add_argument("--print_every", type=int, default=2000, help="Print every")
     parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate")
     parser.add_argument("--batch_size", type=int, default=1024, help="Batch size")
     parser.add_argument("--gpu", type=int, default=0, help="GPU ID")
+    parser.add_argument("--disable_tqdm", action="store_true", help="Disable tqdm")
     # Test arguments
     parser.add_argument("--nqueries", type=int, default=1000, help="Number of queries")
     parser.add_argument("--task_type", type=str, default="sum", help="Task type")
@@ -72,6 +74,9 @@ def parse_args() -> argparse.Namespace:
         elif args.data_name == "ccpp":
             args.indeps = ["AT", "RH"]
             args.dep = "PE"
+        elif args.data_name == "flights":
+            args.indeps = ["ARR_DELAY", "DISTANCE"]
+            args.dep = "TAXI_OUT"
         else:
             raise ValueError(f"No support for {args.data_name} for multi-dim input")
 

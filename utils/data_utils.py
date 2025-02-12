@@ -14,20 +14,15 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 def read_data(data_name: str, task_type: str) -> pd.DataFrame:
     if data_name == "store_sales":
         df = pd.read_csv(
-            f"data/tpc-ds/data_{task_type}.csv",
-            names=[
-                "quantity",
-                "wholesale_cost",
-                "list_price",
-                "sales_price",
-                "net_profit",
-            ],
+            f"data/tpc-ds/dataset_{task_type}.csv",
+            header=0,
         )
+
     elif data_name == "flights":
         df = pd.read_csv(
             f"data/flights/dataset_{task_type}.csv",
             header=0,
-            usecols=["TAXI_OUT", "DISTANCE"],
+            usecols=["TAXI_OUT", "DISTANCE", "ARR_DELAY"],
         )
     elif data_name == "pm25":
         df = pd.read_csv(
@@ -101,17 +96,32 @@ def bin_and_cumsum_2d(df, indeps, dep, resolutions):
     # bin_sum = df.groupby([bin_intervals_dim1, bin_intervals_dim2])[dep].sum()
     # cum_sum = bin_sum.cumsum()
 
-    bin_edges = [(bin_edges_dim1[0], bin_edges_dim2[0])]
-    cum_sum = []
-    for bin_edge_1 in bin_edges_dim1[1:]:
-        for bin_edge_2 in bin_edges_dim2[1:]:
+    # create 2d histogram
+    x, y = df[indeps[0]], df[indeps[1]]
+    histogram, _, _ = np.histogram2d(
+        x, y, bins=[bin_edges_dim1, bin_edges_dim2], weights=df[dep]
+    )
 
-            bin_sum = df[(df[indeps[0]] <= bin_edge_1) & (df[indeps[1]] <= bin_edge_2)][
-                dep
-            ].sum()
+    # Compute cumsum for 2d histogram, each cummulates all values in the covered area
+    cum_sum = np.cumsum(np.cumsum(histogram, axis=0), axis=1)
 
-            cum_sum.append(bin_sum)
-            bin_edges.append((bin_edge_1, bin_edge_2))
+    # bin_edges = [(bin_edges_dim1[0], bin_edges_dim2[0])]
+    # cum_sum = []
+    # for bin_edge_1 in bin_edges_dim1[1:]:
+    #     for bin_edge_2 in bin_edges_dim2[1:]:
+
+    #         bin_sum = df[(df[indeps[0]] <= bin_edge_1) & (df[indeps[1]] <= bin_edge_2)][
+    #             dep
+    #         ].sum()
+
+    #         cum_sum.append(bin_sum)
+    #         bin_edges.append((bin_edge_1, bin_edge_2))
+
+    bin_edges = [(bin_edges_dim1[0], bin_edges_dim2[0])] + [
+        (bin_edge_1, bin_edge_2)
+        for bin_edge_1 in bin_edges_dim1[1:]
+        for bin_edge_2 in bin_edges_dim2[1:]
+    ]
 
     return bin_edges, cum_sum
 
