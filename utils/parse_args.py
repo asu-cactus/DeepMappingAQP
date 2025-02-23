@@ -20,7 +20,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--ndim_input",
         type=int,
-        default=2,
+        default=1,
         choices=[1, 2],
         help="Number of input dimensions",
     )
@@ -30,25 +30,29 @@ def parse_args() -> argparse.Namespace:
     # parser.add_argument("--dep", type=str, help="Dependent variable")
 
     # Auxilirary structure arguments
-    parser.add_argument("--allowed_error", type=float, default=1e-4, help="Point error")
+    parser.add_argument("--allowed_error", type=float, default=1e-6, help="Point error")
     parser.add_argument(
         "--output_scale",
         type=float,
         default=1000,
         help="range is [-output_scale, output_scale]",
     )
+    parser.add_argument(
+        "--sample_ratio", type=float, default=0.1, help="Sample ratio for scrambling"
+    )
     # Training hyperparameters
     parser.add_argument(
         "--units", type=int, default=2000, help="Number of hidden units"
     )
-    parser.add_argument("--epochs", type=int, default=20000, help="Number of epochs")
-    parser.add_argument("--print_every", type=int, default=2000, help="Print every")
+    parser.add_argument("--epochs", type=int, default=10000, help="Number of epochs")
+    parser.add_argument("--print_every", type=int, default=1000, help="Print every")
     parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate")
     parser.add_argument("--batch_size", type=int, default=1024, help="Batch size")
     parser.add_argument("--gpu", type=int, default=0, help="GPU ID")
     parser.add_argument("--disable_tqdm", action="store_true", help="Disable tqdm")
     # Test arguments
-    parser.add_argument("--nqueries", type=int, default=1000, help="Number of queries")
+    parser.add_argument("--synposis_only", action="store_true", help="Synopsis only")
+    parser.add_argument("--nqueries", type=int, default=5000, help="Number of queries")
     parser.add_argument("--task_type", type=str, default="sum", help="Task type")
 
     args = parser.parse_args()

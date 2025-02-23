@@ -18,7 +18,9 @@ def cleanup_scramble():
     verdict_conn = pyverdict.mysql(
         host="localhost", user="root", password="", port=3306
     )
-    verdict_conn.sql("DROP ALL SCRAMBLE flights.taxi;")
+    # scrambles = verdict_conn.sql("SHOW SCRAMBLES;")
+    # print(scrambles)
+
     verdict_conn.sql("DROP ALL SCRAMBLE flights.TAXI_OUT;")
     verdict_conn.sql("DROP ALL SCRAMBLE ccpp.PE;")
     verdict_conn.sql("DROP ALL SCRAMBLE pm25.pm25;")

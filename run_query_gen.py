@@ -1,22 +1,14 @@
 import numpy as np
-from parse_args import parse_args
-from utils.data_utils import prepare_training_data
+from utils.parse_args import parse_args
+from utils.data_utils import prepare_full_data
 import pdb
 
 # Set the random seed for reproducibility
 np.random.seed(42)
 
 
-def generate_1d_queries(nqueries):
-    args = parse_args()
-    X, y = prepare_training_data(
-        args.data_name,
-        args.task_type,
-        args.indeps,
-        args.dep,
-        args.resolutions,
-        args.ndim_input,
-    )
+def generate_1d_queries(args, nqueries):
+    X, y = prepare_full_data(args)
 
     X_max, X_min = X[-1][0], X[0][0]
     X_range = X_max - X_min
@@ -53,24 +45,16 @@ def get_X_dimensions(X, resolutions):
     return X_range_dim1, X_range_dim2, dim1_n_resol, dim2_n_resol
 
 
-def generate_2d_queries(nqueries):
-    args = parse_args()
+def generate_2d_queries(args, nqueries):
 
-    X, y = prepare_training_data(
-        args.data_name,
-        args.task_type,
-        args.indeps,
-        args.dep,
-        args.resolutions,
-        args.ndim_input,
-    )
+    X, y = prepare_full_data(args)
 
     X_range_dim1, X_range_dim2, dim1_n_resol, dim2_n_resol = get_X_dimensions(
         X, args.resolutions
     )
 
     queries = {}
-    for query_percent in [0.05, 0.1, 0.15, 0.2]:
+    for query_percent in [0.15, 0.2, 0.25, 0.3]:
         # Random sample nqueries from X and y
         n_resol_dim1 = int((X_range_dim1 * query_percent) / args.resolutions[0])
         n_resol_dim2 = int((X_range_dim2 * query_percent) / args.resolutions[1])
@@ -104,5 +88,8 @@ def generate_2d_queries(nqueries):
 
 
 if __name__ == "__main__":
-    generate_1d_queries(nqueries=10000)
-    # generate_2d_queries(nqueries=10000)
+    args = parse_args()
+    if args.ndim_input == 1:
+        generate_1d_queries(args, nqueries=10000)
+    else:
+        generate_2d_queries(args, nqueries=10000)

@@ -1,6 +1,8 @@
 from bitarray import bitarray
 import numpy as np
 from typing import Union
+from update import Block
+import pdb
 
 
 class AuxStruct:
@@ -14,3 +16,16 @@ class AuxStruct:
             return empty_value
         index = self.bit_array.count(1, 0, index)
         return self.values[index]
+
+
+class AuxStructWithUpdateBlocks:
+    def __init__(self, ndarray: np.array, blocks: list[Block]):
+        self.array = ndarray
+        self.blocks = blocks
+
+    def get(self, index: tuple[int, int]):
+        d1, d2 = index
+        try:
+            return self.array[d1, d2]
+        except:
+            pdb.set_trace()

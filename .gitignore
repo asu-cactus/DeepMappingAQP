@@ -6,4 +6,5 @@ data/*.zip
 !data/pm25/sample.json
 __pycache__/
 outputs/
+saved_models/
 *.log

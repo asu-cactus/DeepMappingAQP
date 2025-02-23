@@ -42,7 +42,7 @@ def read_data(data_name: str, task_type: str) -> pd.DataFrame:
     return df
 
 
-def bin_and_cumsum_1d(df, indep, dep, resolution):
+def make_histogram1d(df, indep, dep, resolution):
     df = df[[indep, dep]]
     df = df.dropna()
 
@@ -60,14 +60,14 @@ def bin_and_cumsum_1d(df, indep, dep, resolution):
     bin_edges = [i * resolution for i in range(num_min, num_max + 1)]
 
     # Sum df["dep"] for each bin
-    bin_intervals = pd.cut(df[indep], bin_edges, include_lowest=True)
-    bin_sum = df.groupby(bin_intervals)[dep].sum()
-    cum_sum = bin_sum.cumsum()
+    # bin_intervals = pd.cut(df[indep], bin_edges, include_lowest=True)
+    # bin_sum = df.groupby(bin_intervals, observed=False)[dep].sum()
+    # cum_sum = bin_sum.cumsum()
+    histogram, _ = np.histogram(df[indep], bins=bin_edges, weights=df[dep])
+    return np.asarray(bin_edges), np.asarray(histogram)
 
-    return bin_edges, cum_sum
 
-
-def bin_and_cumsum_2d(df, indeps, dep, resolutions):
+def make_histogram2d(df, indeps, dep, resolutions) -> tuple[np.ndarray, np.ndarray]:
     indep_mins = (df[indeps[0]].min(), df[indeps[1]].min())
     indep_maxs = (df[indeps[0]].max(), df[indeps[1]].max())
     num_maxs = (
@@ -97,25 +97,12 @@ def bin_and_cumsum_2d(df, indeps, dep, resolutions):
     # cum_sum = bin_sum.cumsum()
 
     # create 2d histogram
-    x, y = df[indeps[0]], df[indeps[1]]
     histogram, _, _ = np.histogram2d(
-        x, y, bins=[bin_edges_dim1, bin_edges_dim2], weights=df[dep]
+        df[indeps[0]],
+        df[indeps[1]],
+        bins=[bin_edges_dim1, bin_edges_dim2],
+        weights=df[dep],
     )
-
-    # Compute cumsum for 2d histogram, each cummulates all values in the covered area
-    cum_sum = np.cumsum(np.cumsum(histogram, axis=0), axis=1)
-
-    # bin_edges = [(bin_edges_dim1[0], bin_edges_dim2[0])]
-    # cum_sum = []
-    # for bin_edge_1 in bin_edges_dim1[1:]:
-    #     for bin_edge_2 in bin_edges_dim2[1:]:
-
-    #         bin_sum = df[(df[indeps[0]] <= bin_edge_1) & (df[indeps[1]] <= bin_edge_2)][
-    #             dep
-    #         ].sum()
-
-    #         cum_sum.append(bin_sum)
-    #         bin_edges.append((bin_edge_1, bin_edge_2))
 
     bin_edges = [(bin_edges_dim1[0], bin_edges_dim2[0])] + [
         (bin_edge_1, bin_edge_2)
@@ -123,37 +110,55 @@ def bin_and_cumsum_2d(df, indeps, dep, resolutions):
         for bin_edge_2 in bin_edges_dim2[1:]
     ]
 
-    return bin_edges, cum_sum
+    return np.asarray(bin_edges), np.asarray(histogram)
 
 
-def prepare_training_data(
-    data_name: str,
-    task_type: str,
-    indeps: list[str],
-    dep: str,
-    resolutions: list[float],
-    ndim_input: int,
-) -> tuple[np.ndarray, np.ndarray, StandardScaler, MinMaxScaler]:
+def get_X_and_y(df, indeps, dep, ndim_input, resolutions):
+    if ndim_input == 1:
+        bin_edges, histogram = make_histogram1d(df, indeps[0], dep, resolutions[0])
+        cum_sum = np.cumsum(histogram)
+    else:
+        bin_edges, histogram = make_histogram2d(df, indeps, dep, resolutions)
+        cum_sum = np.cumsum(np.cumsum(histogram, axis=0), axis=1)
+
+    X = bin_edges[1:].reshape(-1, ndim_input)
+    y = cum_sum.reshape(-1, 1)
+
+    assert len(X) == len(y)
+    return X, y
+
+
+def prepare_full_data(args) -> tuple[np.ndarray, np.ndarray]:
+    df = read_data(args.data_name, args.task_type)
+    X_all, y_all = get_X_and_y(
+        df, args.indeps, args.dep, args.ndim_input, args.resolutions
+    )
+    return X_all, y_all
+
+
+def prepare_training_data(args) -> tuple[np.ndarray, np.ndarray]:
     # Load data if exists:
+    data_name = args.data_name
     folder_name = data_name if data_name != "store_sales" else "tpc-ds"
-    full_path = f"data/{folder_name}/traindata_{ndim_input}D.npz"
+    full_path = (
+        f"data/{folder_name}/traindata_{args.ndim_input}D_sr{args.sample_ratio}.npz"
+    )
     if os.path.exists(full_path):
         npzfile = np.load(full_path)
         X, y = npzfile["X"], npzfile["y"]
         return X, y
 
-    df = read_data(data_name, task_type)
+    df = read_data(data_name, args.task_type)
 
-    if ndim_input == 1:
-        bin_edges, cum_sum = bin_and_cumsum_1d(df, indeps[0], dep, resolutions[0])
-    else:
-        bin_edges, cum_sum = bin_and_cumsum_2d(df, indeps, dep, resolutions)
-    X = np.array(bin_edges[1:]).reshape(-1, ndim_input)
-    y = np.array(cum_sum).reshape(-1, 1)
-    assert len(X) == len(y)
+    if args.sample_ratio < 1.0:
+        df = df.sample(frac=args.sample_ratio, random_state=42)
+    X_train, y_train = get_X_and_y(
+        df, args.indeps, args.dep, args.ndim_input, args.resolutions
+    )
+
     # Save training data
-    np.savez(full_path, X=X, y=y)
-    return X, y
+    np.savez(full_path, X=X_train, y=y_train)
+    return X_train, y_train
 
 
 def standardize_data(
@@ -178,19 +183,3 @@ def get_dataloader(X, y, batch_size):
 
 if __name__ == "__main__":
     df = read_data("store_sales")
-
-    # df = read_data("ccpp")
-
-    # df = read_data("pm25")
-    # prepare_training_data(df, "TEMP", "pm2.5", 1)
-
-    # df = read_data("flights")
-    # prepare_training_data(
-    #     df,
-    #     "DISTANCE",
-    #     "TAXI_OUT",
-    #     100,
-    #     groupby="DEST_STATE_ABR",
-    #     selection_key=["UNIQUE_CARRIER"],
-    #     selections=["UA"],
-    # )
