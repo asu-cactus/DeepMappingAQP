@@ -83,11 +83,14 @@ def query(args, verdict_conn, queries):
         df = verdict_conn.sql(
             f"SELECT SUM({dep}) FROM {args.data_name}.{dep} WHERE {indep} BETWEEN {X[0]} AND {X[1]}"
         )
-        if not isinstance(df.iloc[0, 0], float):
-            print(f"Irregular result:\n{df.iloc[0, 0]}")
+        try:
+            if not isinstance(df.iloc[0, 0], float):
+                print(f"Irregular result:\n{df.iloc[0, 0]}")
+        except:
+            pdb.set_trace()
         y_hat = df.iloc[0, 0] if isinstance(df.iloc[0, 0], float) else 0
         relative_error = abs(y - y_hat) / (y + EPS)
-        print(f"Relative error: {relative_error}")
+        print(f"y: {y}, y_hat: {y_hat}, relative error: {relative_error}")
         total_rel_error += relative_error
     print(f"Average relative error: {total_rel_error/args.nqueries}")
     # df = verdict_conn.sql(
@@ -148,7 +151,8 @@ if __name__ == "__main__":
                 )
             )
         )
+        avg_query_time = (perf_counter() - start) / args.nqueries
         print(
-            f"Query percent: {query_percent} executed in {perf_counter() - start} seconds"
+            f"Query percent: {query_percent} avg execute time {avg_query_time:.2f} seconds"
         )
         print(f"Query percent: {query_percent}, Maximum memory used for : {mem} MiB")

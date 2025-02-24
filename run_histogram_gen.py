@@ -20,7 +20,8 @@ def prepare_histogram1d(args):
         np.column_stack((bin_centers, histogram)), columns=[args.indeps[0], args.dep]
     )
 
-    hist_df.to_csv(f"data/{args.data_name}/histogram1d.csv", index=False)
+    foldername = args.data_name if args.data_name != "store_sales" else "tpc-ds"
+    hist_df.to_csv(f"data/{foldername}/histogram1d.csv", index=False)
 
 
 if __name__ == "__main__":

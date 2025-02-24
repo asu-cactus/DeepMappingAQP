@@ -24,10 +24,9 @@ def parse_args() -> argparse.Namespace:
         choices=[1, 2],
         help="Number of input dimensions",
     )
-    # parser.add_argument(
-    #     "--indeps", type=str, help="Independent variable, comma separated"
-    # )
-    # parser.add_argument("--dep", type=str, help="Dependent variable")
+    parser.add_argument(
+        "--align", action="store_true", help="Align histogram with origin data"
+    )
 
     # Auxilirary structure arguments
     parser.add_argument("--allowed_error", type=float, default=1e-6, help="Point error")
