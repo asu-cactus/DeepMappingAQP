@@ -18,6 +18,8 @@ def get_model(hidden_size: int) -> nn.Module:
         nn.ReLU(),
         nn.Linear(hidden_size, 1, bias=True),
     )
+    param_size = sum([p.nelement() * p.element_size() for p in model.parameters()])
+    print(f"Model size: {param_size / 1024:.2f} KB")
     return model
 
 
@@ -54,6 +56,7 @@ def train(
             loss = criterion(outputs, y.to(device))
             loss.backward()
             optimizer.step()
+            total_loss += loss.item()
 
         # Save the best model every epoch
         if total_loss < best_loss:
@@ -81,21 +84,42 @@ def create_aux_structure(
     output_size: float,
     **kwargs,
 ):
+
     model.eval()
     device = torch.device(f"cuda:{args.gpu}" if torch.cuda.is_available() else "cpu")
     aux_array = np.zeros_like(y)
-    with torch.no_grad():
-        X = torch.tensor(X, dtype=torch.float32).to(device)
-        y_pred = model(X).cpu().numpy()
-    # Compute point relative error
-    error = np.absolute(y_pred - y) / output_size
 
-    selected_index = error > args.allowed_error
-    print(f"Model pass rate: {1 - selected_index.sum() / len(y):.4f}")
-    origin_y = y_scaler.inverse_transform(y)
-    aux_array[selected_index] = origin_y[selected_index]
+    # with torch.no_grad():
+    #     X = torch.tensor(X, dtype=torch.float32).to(device)
+    #     y_pred = model(X).cpu().numpy()
+    # # Compute point relative error
+    # error = np.absolute(y_pred - y) / output_size
+
+    # selected_index = error > args.allowed_error
+    # print(f"Aux store rate: {selected_index.sum() / len(y):.4f}")
+    # origin_y = y_scaler.inverse_transform(y)
+    # aux_array[selected_index] = origin_y[selected_index]
+    # aux_array = aux_array.reshape(-1)
+
+    # Rewrite the above code to break X and y into batches to avoid memory error
+    batch_size = 1024
+    n_batches = len(y) // batch_size
+    total_selected = 0
+    for i in range(n_batches):
+        start = i * batch_size
+        end = (i + 1) * batch_size
+        X_batch = torch.tensor(X[start:end], dtype=torch.float32).to(device)
+        y_batch = y[start:end]
+        with torch.no_grad():
+            y_pred = model(X_batch).cpu().numpy()
+        error = np.absolute(y_pred - y_batch) / output_size
+        selected_index = error > args.allowed_error
+        origin_y = y_scaler.inverse_transform(y_batch)
+        aux_array[start:end][selected_index] = origin_y[selected_index]
+        total_selected += selected_index.sum()
+    print(f"Aux store rate: {total_selected / len(y):.4f}")
+
     aux_array = aux_array.reshape(-1)
-
     return aux_array
 
 

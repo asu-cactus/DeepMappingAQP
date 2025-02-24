@@ -21,7 +21,8 @@ def prepare_histogram1d(args):
     # plt.xlabel(args.indeps[0])
     # plt.ylabel(args.dep)
     # plt.title(f"{args.data_name} 1D Histogram")
-    # plt.savefig(f"plots/{args.data_name}_histogram1d.png")
+    # plt.savefig(f"plots/{args.data_name}_histogram1d_scaled.png")
+    # return
 
     # Combine bin_centers and histogram into a single array and convert to a dataframe
     hist_df = pd.DataFrame(

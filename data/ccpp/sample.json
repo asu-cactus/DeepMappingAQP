@@ -5,19 +5,23 @@
             "fields": [
                 {
                     "field": "AT",
-                    "type": "quantitative"
+                    "type": "quantitative",
+                    "indep": "indep"
                 },
                 {
                     "field": "AP",
-                    "type": "quantitative"
+                    "type": "quantitative",
+                    "indep": "indep"
                 },
                 {
                     "field": "RH",
-                    "type": "quantitative"
+                    "type": "quantitative",
+                    "indep": "indep"
                 },
                 {
                     "field": "PE",
-                    "type": "quantitative"
+                    "type": "quantitative",
+                    "indep": "dep"
                 }
             ]
         }

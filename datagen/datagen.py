@@ -96,6 +96,10 @@ class DataGen:
             help="The name of the output file",
             default="dataset.csv",
         )
+        parser.add_option(
+            "--scale", type=float, default=1.0, help="Scale the output data"
+        )
+
         # parser.add_option("--output-normalized-file", dest="output_normalized", action="store", help="The name of the output file", default="datagen/output_normalized.csv")
         (options, args) = parser.parse_args()
 
@@ -178,6 +182,13 @@ class DataGen:
             for col in self.sample_json["tables"]["fact"]["fields"]
             if col["type"] == "quantitative"
         ]
+        # Change #0
+        self.indep_col_names = [
+            col["field"]
+            for col in self.sample_json["tables"]["fact"]["fields"]
+            if col["type"] == "quantitative" and col["indep"] == "indep"
+        ]
+
         if self.options.prevent_zero:
             for quant_col_name in self.quant_col_names:
                 self.df[quant_col_name] = (
@@ -298,6 +309,10 @@ class DataGen:
             values = self.cat_hists_values[cat_col]
             xx = np.random.choice(keys, num_samples_to_generate, p=values)
             result_frame.insert(self.orgdf.columns.get_loc(cat_col), cat_col, xx)
+
+        # Change #1
+        for indep_col in self.indep_col_names:
+            result_frame[indep_col] *= self.options.scale
 
         for quant_col in self.quant_col_names:
             result_frame[quant_col] = result_frame[quant_col].round(decimals=1)

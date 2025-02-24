@@ -6,22 +6,26 @@
                 {
                     "field": "pm2.5",
                     "type": "quantitative",
-                    "cast": "int"
+                    "cast": "int",
+                    "indep": "dep"
                 },
                 {
                     "field": "DEWP",
                     "type": "quantitative",
-                    "cast": "int"
+                    "cast": "int",
+                    "indep": "indep"
                 },
                 {
                     "field": "TEMP",
                     "type": "quantitative",
-                    "cast": "int"
+                    "cast": "int",
+                    "indep": "indep"
                 },
                 {
                     "field": "PRES",
                     "type": "quantitative",
-                    "cast": "int"
+                    "cast": "int",
+                    "indep": "indep"
                 }
             ]
         }
