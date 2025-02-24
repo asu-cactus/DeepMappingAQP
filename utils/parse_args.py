@@ -4,12 +4,12 @@ resolution_dict = {
     "DEWP": 1,
     "TEMP": 1,
     "PRES": 1,
-    "AT": 0.02,
-    "AP": 0.02,
-    "RH": 0.02,
-    "DISTANCE": 1,
-    "ARR_DELAY": 1,
-    "list_price": 0.05,
+    "AT": 0.1,
+    "AP": 0.1,
+    "RH": 0.1,
+    "DISTANCE": 0.1,
+    "ARR_DELAY": 0.1,
+    "list_price": 0.1,
 }
 
 

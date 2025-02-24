@@ -28,7 +28,8 @@ def parse_args() -> argparse.Namespace:
     return args
 
 
-def add_data(data_name):
+def add_data(args):
+    data_name = args.data_name
     start = perf_counter()
     foldername = data_name if data_name != "store_sales" else "tpc-ds"
     filename = (
@@ -37,6 +38,9 @@ def add_data(data_name):
         else f"dataset_{args.task_type}.csv"
     )
     df = pd.read_csv(f"data/{foldername}/{filename}", usecols=[dep, indep])
+
+    # Change #1
+    df = df.sample(frac=args.sample_ratio, random_state=42)
 
     mysql_conn = pymysql.connect(
         host="localhost", port=3306, user="root", passwd="", autocommit=True
@@ -67,8 +71,13 @@ def create_scramble_table(args, verdict_conn):
     # create scramble table
     start = perf_counter()
     verdict_conn.sql(f"DROP ALL SCRAMBLE {data_name}.{dep};")
+
+    # Change #2
+    # ratio_str = f"RATIO {args.sample_ratio}"
+    ratio_str = f"RATIO 1.0"
+
     verdict_conn.sql(
-        f"CREATE SCRAMBLE {data_name}.{dep}_scrambled FROM {data_name}.{dep} RATIO {args.sample_ratio};"
+        f"CREATE SCRAMBLE {data_name}.{dep}_scrambled FROM {data_name}.{dep} {ratio_str};"
     )
     print(f"Scramble table created in {perf_counter() - start:.4f} seconds")
 
@@ -85,10 +94,14 @@ def query(args, verdict_conn, queries):
         )
         try:
             if not isinstance(df.iloc[0, 0], float):
-                print(f"Irregular result:\n{df.iloc[0, 0]}")
+                print(f"Irregular result: {df.iloc[0, 0]}")
         except:
             pdb.set_trace()
         y_hat = df.iloc[0, 0] if isinstance(df.iloc[0, 0], float) else 0
+
+        # Change #3
+        y_hat /= args.sample_ratio
+
         relative_error = abs(y - y_hat) / (y + EPS)
         print(f"y: {y}, y_hat: {y_hat}, relative error: {relative_error}")
         total_rel_error += relative_error
@@ -126,7 +139,7 @@ if __name__ == "__main__":
     npzfile = np.load(f"query/{args.data_name}_{args.task_type}_1D.npz")
     verdict_conn = create_verdict_conn()
 
-    add_data(args.data_name)
+    add_data(args)
 
     # Create scramble table
     mem = max(
