@@ -38,16 +38,11 @@ def main(args):
 
     # Train model
     model = get_model(args.units)
-    saved_path = f"saved_models/{args.data_name}_{args.task_type}_{args.ndim_input}D_{args.units}units.pth"
+
     model = train(
+        args,
         model,
         dataloader,
-        args.lr,
-        args.epochs,
-        args.print_every,
-        args.gpu,
-        saved_path,
-        args.disable_tqdm,
     )
 
     # Create aux structure
@@ -59,7 +54,9 @@ def main(args):
     print(f"Preparing time: {perf_counter() - prepare_start}")
 
     # Run test
-    query_path = f"query/{args.data_name}_{args.task_type}_{args.ndim_input}D.npz"
+    query_path = (
+        f"query/{args.data_name}_{args.task_type}_{args.ndim_input}D_nonzeros.npz"
+    )
 
     test(
         args,

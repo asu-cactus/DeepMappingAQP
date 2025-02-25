@@ -54,7 +54,9 @@ def main(args):
     total_sum = synopsis[-1][0]
 
     # Run test
-    query_path = f"query/{args.data_name}_{args.task_type}_{args.ndim_input}D.npz"
+    query_path = (
+        f"query/{args.data_name}_{args.task_type}_{args.ndim_input}D_nonzeros.npz"
+    )
 
     test(
         args,

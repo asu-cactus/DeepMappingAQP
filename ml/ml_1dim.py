@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+from torch.optim.lr_scheduler import MultiStepLR
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from tqdm import tqdm
@@ -16,6 +17,8 @@ def get_model(hidden_size: int) -> nn.Module:
     model = nn.Sequential(
         nn.Linear(1, hidden_size, bias=True),
         nn.ReLU(),
+        nn.Linear(hidden_size, hidden_size, bias=True),
+        nn.ReLU(),
         nn.Linear(hidden_size, 1, bias=True),
     )
     param_size = sum([p.nelement() * p.element_size() for p in model.parameters()])
@@ -24,16 +27,12 @@ def get_model(hidden_size: int) -> nn.Module:
 
 
 def train(
+    args,
     model: nn.Module,
     dataloader: DataLoader,
-    lr: float,
-    epochs: int,
-    print_every: int,
-    gpu: int,
-    saved_path,
-    disable_tqdm,
 ) -> nn.Module:
-    device = torch.device(f"cuda:{gpu}" if torch.cuda.is_available() else "cpu")
+    saved_path = f"saved_models/{args.data_name}_{args.task_type}_{args.ndim_input}D_{args.units}units.pth"
+    device = torch.device(f"cuda:{args.gpu}" if torch.cuda.is_available() else "cpu")
     # Load and return model if exist
     if os.path.exists(saved_path):
         model.load_state_dict(torch.load(saved_path, weights_only=True))
@@ -43,12 +42,13 @@ def train(
     model.train()
     model = model.to(device)
 
-    optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr)
+    scheduler = MultiStepLR(optimizer, milestones=args.milestones, gamma=0.1)
     criterion = torch.nn.MSELoss()
 
     best_loss = float("inf")
     best_state_dict = None
-    for epoch in tqdm(range(1, epochs + 1), disable=disable_tqdm):
+    for epoch in tqdm(range(1, args.epochs + 1), disable=args.disable_tqdm):
         total_loss = 0.0
         for X, y in dataloader:
             optimizer.zero_grad()
@@ -57,13 +57,14 @@ def train(
             loss.backward()
             optimizer.step()
             total_loss += loss.item()
+        scheduler.step()
 
         # Save the best model every epoch
         if total_loss < best_loss:
             best_loss = total_loss
             best_state_dict = model.state_dict()
 
-        if epoch % print_every == 0:
+        if epoch % args.print_every == 0:
             print(f"Epoch: {epoch}, loss: {total_loss / len(dataloader):.4f}")
 
     # print(f"Last learning rate: {scheduler.get_last_lr()}")

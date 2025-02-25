@@ -15,7 +15,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="VerdictDB for AQP")
     parser.add_argument("--data_name", type=str, required=True, help="Data name")
     parser.add_argument("--task_type", type=str, default="sum", help="Task type")
-    parser.add_argument("--nqueries", type=int, default=10, help="Number of queries")
+    parser.add_argument("--nqueries", type=int, default=100, help="Number of queries")
     parser.add_argument("--from_histogram", action="store_true", help="From sypnosis")
     parser.add_argument("--sample_ratio", type=float, default=0.1, help="Sample ratio")
     parser.add_argument("--ndim_input", type=int, default=1, help="Input dimension")
@@ -136,7 +136,7 @@ if __name__ == "__main__":
     else:
         raise ValueError(f"No support for {args.data_name} for 1D input")
 
-    npzfile = np.load(f"query/{args.data_name}_{args.task_type}_1D.npz")
+    npzfile = np.load(f"query/{args.data_name}_{args.task_type}_1D_nonzeros.npz")
     verdict_conn = create_verdict_conn()
 
     add_data(args)

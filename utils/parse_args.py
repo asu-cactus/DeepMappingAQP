@@ -49,6 +49,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch_size", type=int, default=1024, help="Batch size")
     parser.add_argument("--gpu", type=int, default=0, help="GPU ID")
     parser.add_argument("--disable_tqdm", action="store_true", help="Disable tqdm")
+    parser.add_argument("--milestones", type=int, nargs="+", default=[500, 1000])
     # Test arguments
     parser.add_argument("--synposis_only", action="store_true", help="Synopsis only")
     parser.add_argument("--nqueries", type=int, default=5000, help="Number of queries")

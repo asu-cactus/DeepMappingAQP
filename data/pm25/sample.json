@@ -4,7 +4,7 @@
             "name": "tbl_pm25",
             "fields": [
                 {
-                    "field": "pm2.5",
+                    "field": "pm25",
                     "type": "quantitative",
                     "cast": "int",
                     "indep": "dep"
