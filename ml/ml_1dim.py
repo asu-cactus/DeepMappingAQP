@@ -5,12 +5,17 @@ from torch.optim.lr_scheduler import MultiStepLR
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from tqdm import tqdm
+
+from utils.aux_struct import AuxStruct
+
 import pdb
 from time import perf_counter
 import os
 import warnings
 
 warnings.filterwarnings("error")
+
+AUX_EMPTY = -float("inf")
 
 
 def get_model(hidden_size: int) -> nn.Module:
@@ -88,7 +93,8 @@ def create_aux_structure(
 
     model.eval()
     device = torch.device(f"cuda:{args.gpu}" if torch.cuda.is_available() else "cpu")
-    aux_array = np.zeros_like(y)
+    # aux_array = np.zeros_like(y)
+    aux_array = np.ones_like(y, dtype=np.float32) * AUX_EMPTY
 
     # with torch.no_grad():
     #     X = torch.tensor(X, dtype=torch.float32).to(device)
@@ -121,13 +127,18 @@ def create_aux_structure(
     print(f"Aux store rate: {total_selected / len(y):.4f}")
 
     aux_array = aux_array.reshape(-1)
-    return aux_array
+    # return aux_array
+
+    init_bit_list = [1 if aux != AUX_EMPTY else 0 for aux in aux_array]
+    init_list = aux_array[aux_array != AUX_EMPTY]
+    aux_struct = AuxStruct(init_bit_list, init_list)
+    return aux_struct
 
 
 def test(
     args,
     model: nn.Module,
-    aux_structure: np.array,
+    aux_struct: np.array,
     X_scaler: StandardScaler,
     y_scaler: MinMaxScaler,
     query_path: str,
@@ -150,14 +161,17 @@ def test(
         for query in queries:
             X, y = query[:2], query[2]
             aux_indices = ((X - X_min) / args.resolutions[0]).round().astype(int)
-            aux_out = aux_structure[aux_indices]
+            # aux_out = aux_struct[aux_indices]
+            # pdb.set_trace()
+            aux_out = aux_struct.get(aux_indices, AUX_EMPTY)
             X = X_scaler.transform(X.reshape(-1, 1))
             with torch.no_grad():
                 X = torch.tensor(X, dtype=torch.float32).to(device)
                 y_pred = model(X).cpu().numpy()
             y_pred = y_scaler.inverse_transform(y_pred).reshape(-1)
 
-            y_hat = np.where(aux_out != 0, aux_out, y_pred)
+            # y_hat = np.where(aux_out != 0, aux_out, y_pred)
+            y_hat = np.where(aux_out != AUX_EMPTY, aux_out, y_pred)
             y_hat = y_hat[1] - y_hat[0]
 
             y_hat /= args.sample_ratio

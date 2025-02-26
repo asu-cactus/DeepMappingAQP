@@ -11,11 +11,18 @@ class AuxStruct:
         self.values = init_list
         assert self.bit_array.count(1) == len(init_list)
 
-    def get(self, index: int, empty_value) -> Union[float, None]:
-        if self.bit_array[index] == 0:
-            return empty_value
-        index = self.bit_array.count(1, 0, index)
-        return self.values[index]
+        size_in_bytes = self.bit_array.buffer_info()[1] + self.values.nbytes
+        print(f"Size of AuxStruct in KB: {size_in_bytes / 1024:.2f} KB")
+
+    def get(self, index: Union[int, np.array], empty_value) -> Union[np.array, float]:
+        if not isinstance(index, int):
+            # For each integer value in index, get the corresponding value in the array
+            return np.array([self.get(i.item(), empty_value) for i in index])
+        else:
+            if self.bit_array[index] == 0:
+                return empty_value
+            index = self.bit_array.count(1, 0, index)
+            return self.values[index]
 
 
 class AuxStructWithUpdateBlocks:

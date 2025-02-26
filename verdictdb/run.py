@@ -4,9 +4,11 @@ import pandas as pd
 import numpy as np
 
 import pdb
+import os
 import argparse
 from time import perf_counter
-from memory_profiler import memory_usage
+
+# from memory_profiler import memory_usage
 
 EPS = 1e-6
 
@@ -57,6 +59,9 @@ def add_data(args):
     cur.close()
     print(f"Data added to database in {perf_counter() - start:.4f} seconds")
 
+    size_in_KB = len(df) * 2 * 4 / 1024
+    return size_in_KB
+
 
 def create_verdict_conn():
 
@@ -85,7 +90,7 @@ def create_scramble_table(args, verdict_conn):
 def query(args, verdict_conn, queries):
 
     # run query
-
+    start = perf_counter()
     total_rel_error = 0.0
     for query in queries:
         X, y = query[:2], query[2]
@@ -105,14 +110,14 @@ def query(args, verdict_conn, queries):
         relative_error = abs(y - y_hat) / (y + EPS)
         print(f"y: {y}, y_hat: {y_hat}, relative error: {relative_error}")
         total_rel_error += relative_error
-    print(f"Average relative error: {total_rel_error/args.nqueries}")
-    # df = verdict_conn.sql(
-    #     "SELECT SUM(taxi_out) "
-    #     + "FROM flights.taxi_scrambled WHERE distance BETWEEN 800 AND 1000"
-    # )
+    avg_rel_error = total_rel_error / args.nqueries
+    avg_query_time = (perf_counter() - start) / args.nqueries
+    print(
+        f"Query percent: {query_percent}, average relative error: {avg_rel_error:.4f}"
+    )
+    print(f"Avg execute time {avg_query_time:.4f} seconds")
 
-    # print(f"Result:\n{df.iloc[0][0]}")
-    # print("Query executed in", time() - start, "seconds")
+    return avg_rel_error, avg_query_time
 
 
 if __name__ == "__main__":
@@ -139,33 +144,28 @@ if __name__ == "__main__":
     npzfile = np.load(f"query/{args.data_name}_{args.task_type}_1D_nonzeros.npz")
     verdict_conn = create_verdict_conn()
 
-    add_data(args)
+    size_in_KB = add_data(args)
 
     # Create scramble table
-    mem = max(
-        memory_usage(
-            (
-                create_scramble_table,
-                (args, verdict_conn),
-            )
-        )
-    )
-    print(f"Maximum memory used for creating scramble table: {mem} MiB")
+    create_scramble_table(args, verdict_conn)
 
     # Start querying using scramble table
+
+    # Load dataframe from save_path if exists
+    save_path = f"results/{args.data_name}_verdictdb.csv"
+    if os.path.exists(save_path):
+        df = pd.read_csv(save_path)
+    else:
+        df = pd.DataFrame(
+            columns=["size(KB)", "query_percent", "avg_rel_error", "avg_query_time"]
+        )
+
+    # Collect results and append to dataframe
+    results = []
     for query_percent in npzfile.keys():
         queries = npzfile[query_percent][: args.nqueries]
-        start = perf_counter()
-        mem = max(
-            memory_usage(
-                (
-                    query,
-                    (args, verdict_conn, queries),
-                )
-            )
-        )
-        avg_query_time = (perf_counter() - start) / args.nqueries
-        print(
-            f"Query percent: {query_percent} avg execute time {avg_query_time:.2f} seconds"
-        )
-        print(f"Query percent: {query_percent}, Maximum memory used for : {mem} MiB")
+        avg_rel_error, avg_query_time = query(args, verdict_conn, queries)
+        results.append([size_in_KB, query_percent, avg_rel_error, avg_query_time])
+
+    df = pd.concat([df, pd.DataFrame(results, columns=df.columns)], ignore_index=True)
+    df.to_csv(save_path, index=False)

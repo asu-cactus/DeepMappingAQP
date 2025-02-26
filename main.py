@@ -54,9 +54,7 @@ def main(args):
     print(f"Preparing time: {perf_counter() - prepare_start}")
 
     # Run test
-    query_path = (
-        f"query/{args.data_name}_{args.task_type}_{args.ndim_input}D_nonzeros.npz"
-    )
+    query_path = f"query/{args.data_name}_{args.task_type}_{args.ndim_input}D.npz"
 
     test(
         args,
