@@ -97,11 +97,10 @@ def query(args, verdict_conn, queries):
         df = verdict_conn.sql(
             f"SELECT SUM({dep}) FROM {args.data_name}.{dep} WHERE {indep} BETWEEN {X[0]} AND {X[1]}"
         )
-        try:
-            if not isinstance(df.iloc[0, 0], float):
-                print(f"Irregular result: {df.iloc[0, 0]}")
-        except:
-            pdb.set_trace()
+
+        if not isinstance(df.iloc[0, 0], float):
+            print(f"Irregular result: {df.iloc[0, 0]}")
+
         y_hat = df.iloc[0, 0] if isinstance(df.iloc[0, 0], float) else 0
 
         # Change #3
@@ -165,6 +164,8 @@ if __name__ == "__main__":
     for query_percent in npzfile.keys():
         queries = npzfile[query_percent][: args.nqueries]
         avg_rel_error, avg_query_time = query(args, verdict_conn, queries)
+        avg_rel_error = round(avg_rel_error, 4)
+        avg_query_time = round(avg_query_time, 4)
         results.append([size_in_KB, query_percent, avg_rel_error, avg_query_time])
 
     df = pd.concat([df, pd.DataFrame(results, columns=df.columns)], ignore_index=True)
