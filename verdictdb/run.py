@@ -7,6 +7,7 @@ import pdb
 import os
 import argparse
 from time import perf_counter
+import subprocess
 
 # from memory_profiler import memory_usage
 
@@ -39,10 +40,26 @@ def add_data(args):
         if args.from_histogram
         else f"dataset_{args.task_type}.csv"
     )
-    df = pd.read_csv(f"data/{foldername}/{filename}", usecols=[dep, indep])
-
     # Change #1
-    df = df.sample(frac=args.sample_ratio, random_state=42)
+    # Make sure that data is already randomly shuffled
+    if not args.from_histogram:
+        command = f"wc -l data/{foldername}/{filename}"
+        result = subprocess.run(command, capture_output=True, text=True, shell=True)
+
+        if result.returncode == 0:
+            output = result.stdout
+            # Get the number of rows in the file, first row is the header
+            n_all_rows = int(output.split()[0]) - 1
+        else:
+            error = result.stderr
+            raise Exception(f"Shell command error: {error}")
+        nrows = int(n_all_rows * args.sample_ratio)
+    else:
+        nrows = None
+
+    df = pd.read_csv(f"data/{foldername}/{filename}", usecols=[dep, indep], nrows=nrows)
+
+    # df = df.sample(frac=args.sample_ratio, random_state=42)
 
     mysql_conn = pymysql.connect(
         host="localhost", port=3306, user="root", passwd="", autocommit=True
