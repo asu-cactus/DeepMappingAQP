@@ -40,7 +40,9 @@ def train(
     device = torch.device(f"cuda:{args.gpu}" if torch.cuda.is_available() else "cpu")
     # Load and return model if exist
     if os.path.exists(saved_path):
-        model.load_state_dict(torch.load(saved_path, weights_only=True))
+        model.load_state_dict(
+            torch.load(saved_path, weights_only=True, map_location=device)
+        )
         model = model.to(device)
         return model
 

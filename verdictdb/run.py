@@ -81,9 +81,11 @@ def add_data(args):
 
 
 def create_verdict_conn():
+    start = perf_counter()
     verdict_conn = pyverdict.mysql(
         host="localhost", user="root", password="", port=3306
     )
+    print(f"VerdictDB connection created in {perf_counter() - start:.4f} seconds")
     return verdict_conn
 
 
@@ -156,6 +158,7 @@ if __name__ == "__main__":
         raise ValueError(f"No support for {args.data_name} for 1D input")
 
     npzfile = np.load(f"query/{args.data_name}_{args.task_type}_1D_nonzeros.npz")
+
     verdict_conn = create_verdict_conn()
 
     size_in_KB = add_data(args)
