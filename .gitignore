@@ -10,3 +10,4 @@ saved_models/
 plots/
 *.log
 *.tar.gz
+*.tar

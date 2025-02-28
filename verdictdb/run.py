@@ -58,7 +58,7 @@ def add_data(args):
         nrows = None
 
     df = pd.read_csv(f"data/{foldername}/{filename}", usecols=[dep, indep], nrows=nrows)
-
+    # df = pd.read_csv(f"data/{foldername}/{filename}", usecols=[dep, indep])
     # df = df.sample(frac=args.sample_ratio, random_state=42)
 
     mysql_conn = pymysql.connect(
@@ -81,7 +81,6 @@ def add_data(args):
 
 
 def create_verdict_conn():
-
     verdict_conn = pyverdict.mysql(
         host="localhost", user="root", password="", port=3306
     )
@@ -105,7 +104,6 @@ def create_scramble_table(args, verdict_conn):
 
 
 def query(args, verdict_conn, queries):
-
     # run query
     start = perf_counter()
     total_rel_error = 0.0

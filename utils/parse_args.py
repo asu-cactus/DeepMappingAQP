@@ -40,9 +40,7 @@ def parse_args() -> argparse.Namespace:
         "--sample_ratio", type=float, default=0.1, help="Sample ratio for scrambling"
     )
     # Training hyperparameters
-    parser.add_argument(
-        "--units", type=int, default=2000, help="Number of hidden units"
-    )
+    parser.add_argument("--units", type=int, default=200, help="Number of hidden units")
     parser.add_argument("--epochs", type=int, default=1000, help="Number of epochs")
     parser.add_argument("--print_every", type=int, default=100, help="Print every")
     parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate")
