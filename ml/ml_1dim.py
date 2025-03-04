@@ -37,7 +37,9 @@ def train(
     dataloader: DataLoader,
 ) -> nn.Module:
     saved_path = f"saved_models/{args.data_name}_{args.task_type}_{args.ndim_input}D_{args.units}units.pth"
-    device = torch.device(f"cuda:{args.gpu}" if torch.cuda.is_available() else "cpu")
+    device = torch.device(
+        f"cuda:{args.gpu}" if args.gpu >= 0 and torch.cuda.is_available() else "cpu"
+    )
     # Load and return model if exist
     if os.path.exists(saved_path):
         model.load_state_dict(
@@ -94,7 +96,9 @@ def create_aux_structure(
 ):
 
     model.eval()
-    device = torch.device(f"cuda:{args.gpu}" if torch.cuda.is_available() else "cpu")
+    device = torch.device(
+        f"cuda:{args.gpu}" if args.gpu >= 0 and torch.cuda.is_available() else "cpu"
+    )
     # aux_array = np.zeros_like(y)
     aux_array = np.ones_like(y, dtype=np.float32) * AUX_EMPTY
 
@@ -148,8 +152,9 @@ def test(
     total_sum: float,
     **kwargs,
 ):
-
-    device = torch.device(f"cuda:{args.gpu}" if torch.cuda.is_available() else "cpu")
+    device = torch.device(
+        f"cuda:{args.gpu}" if args.gpu >= 0 and torch.cuda.is_available() else "cpu"
+    )
 
     # Load queries
     npzfile = np.load(query_path)
