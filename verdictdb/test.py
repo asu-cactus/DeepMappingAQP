@@ -30,7 +30,9 @@ cur.close()
 verdict_conn = pyverdict.mysql(host="localhost", user="root", password="", port=3306)
 
 # create scramble table
-verdict_conn.sql("CREATE SCRAMBLE myschema.sales_scrambled from myschema.sales")
+verdict_conn.sql(
+    "CREATE SCRAMBLE myschema.sales_scrambled from myschema.sales RATIO 0.1"
+)
 
 # run query
 # df = verdict_conn.sql(
@@ -39,7 +41,7 @@ verdict_conn.sql("CREATE SCRAMBLE myschema.sales_scrambled from myschema.sales")
 #     + "GROUP BY product "
 #     + "ORDER BY product"
 # )
-df = verdict_conn.sql("SELECT *" + "FROM myschema.sales_scrambled ")
+df = verdict_conn.sql("SELECT * FROM myschema.sales_scrambled ")
 print(df)
 
 

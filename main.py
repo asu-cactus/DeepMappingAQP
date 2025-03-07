@@ -60,16 +60,16 @@ def main(args):
 
     # Run test
 
-    # test(
-    #     args,
-    #     model,
-    #     aux_structure,
-    #     X_scaler,
-    #     y_scaler,
-    #     X_min,
-    #     total_sum,
-    #     dim2_n_resol=dim2_n_resol,
-    # )
+    test(
+        args,
+        model,
+        aux_structure,
+        X_scaler,
+        y_scaler,
+        X_min,
+        total_sum,
+        dim2_n_resol=dim2_n_resol,
+    )
 
     test_with_inserts(
         args,
