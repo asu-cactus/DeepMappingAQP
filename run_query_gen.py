@@ -1,6 +1,6 @@
 import numpy as np
 from utils.parse_args import parse_args
-from utils.data_utils import prepare_full_data
+from utils.data_utils import prepare_full_data, prepare_full_data_with_insertion
 import pdb
 
 # Set the random seed for reproducibility
@@ -12,7 +12,7 @@ def generate_1d_queries(args):
 
     X_max, X_min = X[-1][0], X[0][0]
     X_range = X_max - X_min
-    query_percents = [0.001, 0.01, 0.05, 0.1]
+    query_percents = [0.1, 0.15, 0.2]
     # query_ranges = [
     #     (X_range * query_percent) // args.resolution * args.resolution
     #     for query_percent in query_percents
@@ -43,17 +43,19 @@ def generate_1d_queries_nonzeros(args):
     X_range = X_max - X_min
     # y_max, y_min = y[-1][0], y[0][0]
     # y_range = y_max - y_min
-    query_percents = [0.001, 0.01, 0.05, 0.1]
+    query_percents = [0.1, 0.15, 0.2]
 
     queries = {}
     for query_percent in query_percents:
         q_array = None
 
+        skip_query_percent = False
         while q_array is None or len(q_array) < args.nqueries:
             # Random sample nqueries from X and y
             n_resolution = int((X_range * query_percent) / args.resolutions[0])
             if not n_resolution > 0:
-                continue
+                skip_query_percent = True
+                break
 
             start_max_index = len(X) - n_resolution - 1
             sample_size = 10 * args.nqueries
@@ -68,9 +70,59 @@ def generate_1d_queries_nonzeros(args):
                 q_array = q_batch
             else:
                 q_array = np.vstack((q_array, q_batch))
+        if skip_query_percent:
+            continue
         queries[str(query_percent)] = q_array[: args.nqueries]
 
     np.savez(f"query/{args.data_name}_{args.task_type}_1D_nonzeros.npz", **queries)
+
+
+def generate_1d_insert_queries_nonzero(args):
+    X, ys = prepare_full_data_with_insertion(args)
+
+    X_max, X_min = X[-1][0], X[0][0]
+    X_range = X_max - X_min
+    # y_max, y_min = y[-1][0], y[0][0]
+    # y_range = y_max - y_min
+    query_percents = [0.1]
+
+    queries = {}
+    for query_percent in query_percents:
+        n_resolution = int((X_range * query_percent) / args.resolutions[0])
+        if not n_resolution > 0:
+            continue
+
+        y_origin = ys[:, 0]
+        # y_inserts = ys[:, 1:]
+        for _, y in enumerate(ys.T):
+            q_array = None
+            while q_array is None or len(q_array) < args.nqueries:
+                # Random sample nqueries from X and y
+
+                start_max_index = len(X) - n_resolution - 1
+                sample_size = 10 * args.nqueries
+                indices = np.random.choice(start_max_index, sample_size, replace=False)
+                start = X[indices]
+                end = X[indices + n_resolution]
+                label = y[indices + n_resolution] - y[indices]
+                label_origin = y_origin[indices + n_resolution] - y_origin[indices]
+
+                q_batch = np.column_stack((start, end, label, label_origin))
+                # Filter out queries with zero label
+                q_batch = q_batch[q_batch[:, 2] != 0]
+
+                if q_array is None:
+                    q_array = q_batch
+                else:
+                    q_array = np.vstack((q_array, q_batch))
+
+            query_percent_str = str(query_percent)
+            if query_percent_str not in queries:
+                queries[query_percent_str] = []
+
+            queries[query_percent_str].append(q_array[: args.nqueries])
+
+    np.savez(f"query/{args.data_name}_insert_1D_nonzeros.npz", **queries)
 
 
 def get_X_dimensions(X, resolutions):
@@ -130,6 +182,7 @@ if __name__ == "__main__":
     args = parse_args()
     if args.ndim_input == 1:
         # generate_1d_queries(args)
-        generate_1d_queries_nonzeros(args)
+        # generate_1d_queries_nonzeros(args)
+        generate_1d_insert_queries_nonzero(args)
     else:
         generate_2d_queries(args)

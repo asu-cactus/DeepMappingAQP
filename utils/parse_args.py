@@ -52,6 +52,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--synposis_only", action="store_true", help="Synopsis only")
     parser.add_argument("--nqueries", type=int, default=5000, help="Number of queries")
     parser.add_argument("--task_type", type=str, default="sum", help="Task type")
+    # Update arguments
+    parser.add_argument(
+        "--n_insert", type=int, default=10_000_000, help="Number of inserts"
+    )
+    parser.add_argument(
+        "--n_insert_batch", type=int, default=20, help="Number of inserts"
+    )
+    parser.add_argument(
+        "--buffer_capacity", type=int, default=1000, help="Buffer capacity"
+    )
 
     args = parser.parse_args()
     if args.ndim_input == 1:

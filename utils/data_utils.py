@@ -11,41 +11,76 @@ import warnings
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 
-def read_data(data_name: str, task_type: str) -> pd.DataFrame:
+def read_data(args) -> pd.DataFrame:
+    data_name = args.data_name
+    task_type = args.task_type
+    usecols = [args.dep] + args.indeps
+
     if data_name == "store_sales":
         df = pd.read_csv(
             f"data/tpc-ds/dataset_{task_type}.csv",
             header=0,
+            usecols=usecols,
         )
-
     elif data_name == "flights":
         df = pd.read_csv(
             f"data/flights/dataset_{task_type}.csv",
             header=0,
-            usecols=["TAXI_OUT", "DISTANCE", "ARR_DELAY"],
+            usecols=usecols,
         )
     elif data_name == "pm25":
         df = pd.read_csv(
             f"data/pm25/dataset_{task_type}.csv",
             header=0,
-            usecols=["pm25", "DEWP", "TEMP", "PRES"],
+            usecols=usecols,
         )
     elif data_name == "ccpp":
         df = pd.read_csv(
             f"data/ccpp/dataset_{task_type}.csv",
             header=0,
-            usecols=["AT", "AP", "RH", "PE"],
+            usecols=usecols,
         )
     else:
         raise ValueError(f"Unknown data_name: {data_name}")
+    df = df.dropna()
+    return df
 
+
+def read_insertion_data(args) -> pd.DataFrame:
+    data_name = args.data_name
+    usecols = [args.dep] + args.indeps
+
+    if data_name == "store_sales":
+        df = pd.read_csv(
+            f"data/update_data/tpc-ds/insert.csv",
+            header=0,
+            usecols=usecols,
+        )
+    elif data_name == "flights":
+        df = pd.read_csv(
+            f"data/update_data/flights/insert.csv",
+            header=0,
+            usecols=usecols,
+        )
+    elif data_name == "pm25":
+        df = pd.read_csv(
+            f"data/update_data/pm25/insert.csv",
+            header=0,
+            usecols=usecols,
+        )
+    elif data_name == "ccpp":
+        df = pd.read_csv(
+            f"data/update_data/ccpp/insert.csv",
+            header=0,
+            usecols=usecols,
+        )
+    else:
+        raise ValueError(f"Unknown data_name: {data_name}")
+    df = df.dropna()
     return df
 
 
 def make_histogram1d(df, indep, dep, resolution, bin_edges=None):
-    df = df[[indep, dep]]
-    df = df.dropna()
-
     if bin_edges is None:
         indep_min = df[indep].min()
         indep_max = df[indep].max()
@@ -143,10 +178,36 @@ def get_X_and_y(df, indeps, dep, ndim_input, resolutions, bin_edges=None):
 
 
 def prepare_full_data(args) -> tuple[np.ndarray, np.ndarray]:
-    df = read_data(args.data_name, args.task_type)
+    df = read_data(args)
     X_all, y_all = get_X_and_y(
         df, args.indeps, args.dep, args.ndim_input, args.resolutions
     )
+    return X_all, y_all
+
+
+def prepare_full_data_with_insertion(args) -> tuple[np.ndarray, np.ndarray]:
+    # Only implement 1D input for now
+    indep, dep = args.indeps[0], args.dep
+    resolution = args.resolutions[0]
+
+    df = read_data(args)
+    bin_edges, histogram = make_histogram1d(df, indep, dep, resolution)
+    cum_sum = np.cumsum(histogram)
+
+    ys = [cum_sum.copy()]
+    df_insert = read_insertion_data(args)
+    batch_size = int(len(df_insert) / args.n_insert_batch)
+    for i in range(args.n_insert_batch):
+        insert_batch = df_insert[batch_size * i : batch_size * (i + 1)]
+        _, batch_histogram = make_histogram1d(
+            insert_batch, indep, dep, resolution, bin_edges
+        )
+        batch_cum_sum = np.cumsum(batch_histogram)
+        cum_sum += batch_cum_sum
+        ys.append(cum_sum.copy())
+    X_all = bin_edges[1:].reshape(-1, args.ndim_input)
+    y_all = np.column_stack(ys)
+    assert X_all.shape[0] == y_all.shape[0]
     return X_all, y_all
 
 
@@ -162,7 +223,7 @@ def prepare_training_data(args) -> tuple[np.ndarray, np.ndarray]:
         X, y = npzfile["X"], npzfile["y"]
         return X, y
 
-    df = read_data(data_name, args.task_type)
+    df = read_data(args)
 
     if args.align:
         if args.ndim_input == 1:
@@ -203,7 +264,3 @@ def get_dataloader(X, y, batch_size):
         dataset, batch_size=batch_size, pin_memory=True
     )
     return dataloader
-
-
-if __name__ == "__main__":
-    df = read_data("store_sales")

@@ -8,8 +8,6 @@ import numpy as np
 # Set random seed for reproducibility
 random.seed(42)
 
-NDECIMALS = 1
-
 
 @dataclass
 class RangeBlock:
@@ -41,7 +39,7 @@ class Update:
     def _initialize_blocks(self, ranges):
         blocks = []
         for r in ranges:
-            deltas = np.zeros(round((r.end - r.start) / self.resolution))
+            deltas = np.zeros(round((r.end - r.start + 1) / self.resolution))
             blocks.append(RangeBlock(r.start, r.end, deltas))
         return blocks
 
@@ -57,33 +55,38 @@ class Update:
         for block, temp_delta in zip(self.blocks, self.buffer):
             if block.start <= entry.point <= block.end:
                 idx = round((entry.point - block.start) / self.resolution)
+                if idx >= len(block.deltas):
+                    print(f"idx: {idx}, deltas len: {len(block.deltas)}")
+                    pdb.set_trace()
+                    idx = -1
                 temp_delta[idx] += entry.value
                 break
 
         if self.size >= self.buffer_capacity:
             self._flush_buffer()
-            self.size = 0
 
     def _flush_buffer(self):
         for block, temp_delta in zip(self.blocks, self.buffer):
             # Cumulative sum
             block.deltas += np.cumsum(temp_delta)
             temp_delta.fill(0)
+        self.size = 0
 
 
-def get_update_ranges(X_min, X_max, resolution):
+def get_update_ranges(X_min, X_max, args):
+    resolution = args.resolutions[0]
     nblocks = 5
     range_percent = 0.05
+    n_decimal = 1 if args.data_name != "pm25" else 0
 
     ranges = []
     while nblocks > 0:
-        range_size = round(range_percent * (X_max - X_min))
+        range_size = range_percent * (X_max - X_min)
 
         X_start = random.uniform(X_min, X_max - range_size) // resolution * resolution
         X_end = X_start + range_size
 
-        # HARD CODED: round to 1 decimal place
-        X_start, X_end = round(X_start, NDECIMALS), round(X_end, NDECIMALS)
+        X_start, X_end = round(X_start, n_decimal), round(X_end, n_decimal)
         assert X_min <= X_start <= X_max - range_size
 
         # Check if the range is already in the ranges
@@ -94,15 +97,6 @@ def get_update_ranges(X_min, X_max, resolution):
             ranges.append(Range(X_start, X_end))
             nblocks -= 1
     return ranges
-
-
-def generate_update_queries(value_min, value_max, ranges, nqueries, resolution):
-    for _ in range(nqueries):
-        r = random.choice(ranges)
-        update_point = random.uniform(r.start, r.end) // resolution * resolution
-        update_point = round(update_point, NDECIMALS)
-        update_value = random.uniform(value_min, value_max)
-        yield UpdateEntry(update_point, update_value)
 
 
 def query_updates(range_query, update: Update):
@@ -118,7 +112,7 @@ def query_updates(range_query, update: Update):
             return block.deltas[idx2] - block.deltas[idx1 - 1]
 
         elif start_within and end_within:
-            print("Range covers the entire block")
+            # print("Range covers the entire block")
             # When the range covers the entire block
             overall_change += block.deltas[-1]
         elif start_within:
@@ -130,6 +124,26 @@ def query_updates(range_query, update: Update):
     return overall_change
 
 
+# The following codes are for testing purpose
+NDECIMALS = 1
+
+
+@dataclass
+class Arguments:
+    data_name: str
+    buffer_capacity: int
+    resolutions: Sequence[float]
+
+
+def generate_update_queries(value_min, value_max, ranges, nqueries, resolution):
+    for _ in range(nqueries):
+        r = random.choice(ranges)
+        update_point = random.uniform(r.start, r.end) // resolution * resolution
+        update_point = round(update_point, NDECIMALS)
+        update_value = random.uniform(value_min, value_max)
+        yield UpdateEntry(update_point, update_value)
+
+
 def generate_range_queries(X_min, X_max, range_size, nqueries):
 
     for _ in range(nqueries):
@@ -138,12 +152,6 @@ def generate_range_queries(X_min, X_max, range_size, nqueries):
         range_start = round(range_start, NDECIMALS)
         range_end = round(range_end, NDECIMALS)
         yield (range_start, range_end)
-
-
-@dataclass
-class Arguments:
-    buffer_capacity: int
-    resolutions: Sequence[float]
 
 
 class NaiveUpdate:
@@ -172,10 +180,10 @@ if __name__ == "__main__":
 
     nqueries = 5000
 
-    args = Arguments(buffer_capacity=nqueries, resolutions=[0.1])
+    args = Arguments(data_name="ccpp", buffer_capacity=nqueries, resolutions=[0.1])
     resolution = args.resolutions[0]
 
-    ranges = get_update_ranges(X_min, X_max, resolution)
+    ranges = get_update_ranges(X_min, X_max, args)
     print("Ranges:")
     print(ranges)
 

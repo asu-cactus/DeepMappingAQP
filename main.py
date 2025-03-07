@@ -3,7 +3,6 @@ from run_query_gen import get_X_dimensions
 
 from utils.data_utils import (
     prepare_training_data,
-    prepare_full_data,
     get_dataloader,
     standardize_data,
 )
@@ -12,7 +11,13 @@ from time import perf_counter
 
 def main(args):
     if args.ndim_input == 1:
-        from ml.ml_1dim import get_model, train, test, create_aux_structure
+        from ml.ml_1dim import (
+            get_model,
+            train,
+            test,
+            create_aux_structure,
+            test_with_inserts,
+        )
     else:
         from ml.ml_2dim import get_model, train, test, create_aux_structure
     # Prepare training data
@@ -54,15 +59,24 @@ def main(args):
     print(f"Preparing time: {perf_counter() - prepare_start}")
 
     # Run test
-    query_path = f"query/{args.data_name}_{args.task_type}_{args.ndim_input}D.npz"
 
-    test(
+    # test(
+    #     args,
+    #     model,
+    #     aux_structure,
+    #     X_scaler,
+    #     y_scaler,
+    #     X_min,
+    #     total_sum,
+    #     dim2_n_resol=dim2_n_resol,
+    # )
+
+    test_with_inserts(
         args,
         model,
         aux_structure,
         X_scaler,
         y_scaler,
-        query_path,
         X_min,
         total_sum,
         dim2_n_resol=dim2_n_resol,

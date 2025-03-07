@@ -41,25 +41,26 @@ def add_data(args):
         else f"dataset_{args.task_type}.csv"
     )
     # Change #1
-    # Make sure that data is already randomly shuffled
-    if not args.from_histogram:
-        command = f"wc -l data/{foldername}/{filename}"
-        result = subprocess.run(command, capture_output=True, text=True, shell=True)
+    # # Make sure that data is already randomly shuffled
+    # if not args.from_histogram:
+    #     command = f"wc -l data/{foldername}/{filename}"
+    #     result = subprocess.run(command, capture_output=True, text=True, shell=True)
 
-        if result.returncode == 0:
-            output = result.stdout
-            # Get the number of rows in the file, first row is the header
-            n_all_rows = int(output.split()[0]) - 1
-        else:
-            error = result.stderr
-            raise Exception(f"Shell command error: {error}")
-        nrows = int(n_all_rows * args.sample_ratio)
-    else:
-        nrows = None
+    #     if result.returncode == 0:
+    #         output = result.stdout
+    #         # Get the number of rows in the file, first row is the header
+    #         n_all_rows = int(output.split()[0]) - 1
+    #     else:
+    #         error = result.stderr
+    #         raise Exception(f"Shell command error: {error}")
+    #     nrows = int(n_all_rows * args.sample_ratio)
+    # else:
+    #     nrows = None
 
-    df = pd.read_csv(f"data/{foldername}/{filename}", usecols=[dep, indep], nrows=nrows)
-    # df = pd.read_csv(f"data/{foldername}/{filename}", usecols=[dep, indep])
-    # df = df.sample(frac=args.sample_ratio, random_state=42)
+    # df = pd.read_csv(f"data/{foldername}/{filename}", usecols=[dep, indep], nrows=nrows)
+
+    df = pd.read_csv(f"data/{foldername}/{filename}", usecols=[dep, indep])
+    df = df.sample(frac=args.sample_ratio, random_state=42)
 
     mysql_conn = pymysql.connect(
         host="localhost", port=3306, user="root", passwd="", autocommit=True
@@ -77,7 +78,7 @@ def add_data(args):
     print(f"Data added to database in {perf_counter() - start:.4f} seconds")
 
     size_in_KB = len(df) * 2 * 4 / 1024
-    return size_in_KB
+    return size_in_KB, mysql_conn
 
 
 def create_verdict_conn():
@@ -105,7 +106,48 @@ def create_scramble_table(args, verdict_conn):
     print(f"Scramble table created in {perf_counter() - start:.4f} seconds")
 
 
-def query(args, verdict_conn, queries):
+def query_with_insert(args, verdict_conn, mysql_conn):
+    data_name = args.data_name
+
+    cur = mysql_conn.cursor()
+
+    foldername = data_name if data_name != "store_sales" else "tpc-ds"
+    usecols = [dep, indep]
+    df_insert = pd.read_csv(
+        f"data/update_data/{foldername}/insert.csv", header=0, usecols=usecols
+    ).dropna()
+
+    indep_min = df[indep].min()
+    batch_size = int(len(df_insert) / args.n_insert_batch)
+    # Run queries
+    query_path = f"query/{args.data_name}_insert_{args.ndim_input}D_nonzeros.npz"
+    npzfile = np.load(query_path, allow_pickle=True)
+    for query_percent, query_group in npzfile.items():
+        for i, queries in enumerate(query_group):
+            queries = queries[: args.nqueries]
+
+            insert_batch = df_insert[batch_size * i : batch_size * (i + 1)]
+            insert_sample = insert_batch.sample(frac=args.sample_ratio, random_state=42)
+            cur.execute(f"DROP SCHEMA IF EXISTS {data_name}")
+            cur.execute(f"CREATE SCHEMA {data_name}")
+            cur.execute(
+                f"CREATE TABLE {data_name}.{dep} ({dep} double, {indep} double)"
+            )
+            cur.executemany(
+                f"INSERT INTO {data_name}.{dep} VALUES (%s, %s)",
+                insert_sample.values.tolist(),
+            )
+
+            verdict_conn.sql(
+                f"APPEND SCRAMBLE {data_name}.{dep}_scrambled WHERE {indep} >= {indep_min};"
+            )
+
+            query(args, verdict_conn, queries, query_percent, i)
+
+    cur.close()
+
+
+def query(args, verdict_conn, queries, query_percent, ith_insert=""):
     # run query
     start = perf_counter()
     total_rel_error = 0.0
@@ -128,8 +170,9 @@ def query(args, verdict_conn, queries):
         total_rel_error += relative_error
     avg_rel_error = total_rel_error / args.nqueries
     avg_query_time = (perf_counter() - start) / args.nqueries
+
     print(
-        f"Query percent: {query_percent}, average relative error: {avg_rel_error:.4f}"
+        f"{query_percent}%-{ith_insert}th insert, average relative error: {avg_rel_error:.4f}"
     )
     print(f"Avg execute time {avg_query_time:.4f} seconds")
 
@@ -161,7 +204,7 @@ if __name__ == "__main__":
 
     verdict_conn = create_verdict_conn()
 
-    size_in_KB = add_data(args)
+    size_in_KB, mysql_conn = add_data(args)
 
     # Create scramble table
     create_scramble_table(args, verdict_conn)
@@ -180,11 +223,17 @@ if __name__ == "__main__":
     # Collect results and append to dataframe
     results = []
     for query_percent in npzfile.keys():
+        if query_percent != "0.1":
+            continue
         queries = npzfile[query_percent][: args.nqueries]
-        avg_rel_error, avg_query_time = query(args, verdict_conn, queries)
+        avg_rel_error, avg_query_time = query(
+            args, verdict_conn, queries, query_percent
+        )
         avg_rel_error = round(avg_rel_error, 4)
         avg_query_time = round(avg_query_time, 4)
         results.append([size_in_KB, query_percent, avg_rel_error, avg_query_time])
 
-    df = pd.concat([df, pd.DataFrame(results, columns=df.columns)], ignore_index=True)
-    df.to_csv(save_path, index=False)
+    # df = pd.concat([df, pd.DataFrame(results, columns=df.columns)], ignore_index=True)
+    # df.to_csv(save_path, index=False)
+
+    query_with_insert(args, verdict_conn, mysql_conn)

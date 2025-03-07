@@ -3,13 +3,18 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import MultiStepLR
 import numpy as np
+import pandas as pd
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from tqdm import tqdm
 
 from utils.aux_struct import AuxStruct
+from utils.data_utils import read_insertion_data
+from utils.update_1d import UpdateEntry, Update, query_updates, Range, NaiveUpdate
+
 
 import pdb
 from time import perf_counter
+import json
 import os
 import warnings
 
@@ -147,14 +152,15 @@ def test(
     aux_struct: np.array,
     X_scaler: StandardScaler,
     y_scaler: MinMaxScaler,
-    query_path: str,
     X_min: float,
     total_sum: float,
     **kwargs,
 ):
-    device = torch.device(
-        f"cuda:{args.gpu}" if args.gpu >= 0 and torch.cuda.is_available() else "cpu"
+    query_path = (
+        f"query/{args.data_name}_{args.task_type}_{args.ndim_input}D_nonzeros.npz"
     )
+    device = torch.device("cpu")
+    model = model.to(device)
 
     # Load queries
     npzfile = np.load(query_path)
@@ -192,5 +198,101 @@ def test(
         avg_rel_error = total_rel_error / len(queries)
         avg_error_II = total_error_II / len(queries)
         avg_time = (perf_counter() - start) / len(queries)
-        print(f"{query_percent} query:  executed in {avg_time} seconds on average.")
+        print(f"{query_percent} query:  executed in {avg_time:.6} seconds on average.")
         print(f"Avg rel error: {avg_rel_error:.4f}, Avg error II: {avg_error_II:.4f}")
+
+
+def test_with_inserts(
+    args,
+    model: nn.Module,
+    aux_struct: np.array,
+    X_scaler: StandardScaler,
+    y_scaler: MinMaxScaler,
+    X_min: float,
+    total_sum: float,
+    **kwargs,
+):
+    query_path = f"query/{args.data_name}_insert_{args.ndim_input}D_nonzeros.npz"
+    device = torch.device("cpu")
+    model = model.to(device)
+
+    # Load ranges from data/{folder_name}/ccpp/insert.json
+    folder_name = args.data_name if args.data_name != "store_sales" else "tpc-ds"
+    with open(f"data/update_data/{folder_name}/ranges.json", "r") as f:
+        insert_ranges = json.load(f)
+    insert_ranges = [Range(**r) for r in insert_ranges.values()]
+
+    # Create update object
+    update = Update(args, insert_ranges)
+    # naive_update = NaiveUpdate()
+
+    # Load queries
+    df_insert = read_insertion_data(args)
+    batch_size = int(len(df_insert) / args.n_insert_batch)
+    indep, dep = args.indeps[0], args.dep
+
+    results = []
+    npzfile = np.load(query_path, allow_pickle=True)
+    for query_percent, query_group in npzfile.items():
+        for i, queries in enumerate(query_group):
+            queries = queries[: args.nqueries]
+            insert_batch = df_insert[batch_size * i : batch_size * (i + 1)]
+            # insert_batch = df_insert[batch_size * i : batch_size * i + 1000]
+            for _, row in insert_batch.iterrows():
+                update.update(UpdateEntry(point=row[indep], value=row[dep]))
+                # naive_update.update(UpdateEntry(point=row[indep], value=row[dep]))
+
+            # The first column is the start of the query range and the second column is the end
+            start = perf_counter()
+            total_rel_error = 0.0
+            total_error_II = 0.0
+            for query in queries:
+                X, y = query[:2], query[2]
+                delta = query_updates(X, update)
+
+                aux_indices = ((X - X_min) / args.resolutions[0]).round().astype(int)
+                aux_out = aux_struct.get(aux_indices, AUX_EMPTY)
+                X = X_scaler.transform(X.reshape(-1, 1))
+                with torch.no_grad():
+                    X = torch.tensor(X, dtype=torch.float32).to(device)
+                    y_pred = model(X).cpu().numpy()
+                y_pred = y_scaler.inverse_transform(y_pred).reshape(-1)
+
+                y_hat = np.where(aux_out != AUX_EMPTY, aux_out, y_pred)
+                y_hat = y_hat[1] - y_hat[0]
+
+                y_hat /= args.sample_ratio
+
+                # Update the y_hat with the delta after scaling
+                y_hat += delta
+
+                rel_error = np.absolute(y_hat - y) / (y + 1e-6)
+                error_II = np.absolute(y_hat - y) / total_sum
+
+                total_rel_error += rel_error
+                total_error_II += error_II
+
+            avg_rel_error = total_rel_error / len(queries)
+            avg_error_II = total_error_II / len(queries)
+            avg_time = (perf_counter() - start) / len(queries)
+
+            query_percent = float(query_percent)
+            print(
+                f"{query_percent*100}%-{i}th insert query:  executed in {avg_time:.6f} seconds on average."
+            )
+            print(
+                f"Avg rel error: {avg_rel_error:.4f}, Avg error II: {avg_error_II:.4f}"
+            )
+            results.append(
+                {
+                    "query_percent": query_percent,
+                    "nth_insert": i,
+                    "avg_rel_error": avg_rel_error,
+                    "avg_time": avg_time,
+                }
+            )
+    # # Save results
+    # df_results = pd.DataFrame(results)
+    # df_results.to_csv(
+    #     f"results/{args.data_name}_insert_{args.ndim_input}D_nonzeros.csv", index=False
+    # )
