@@ -1,4 +1,3 @@
-import pymysql
 import pyverdict
 import pandas as pd
 import numpy as np
@@ -7,9 +6,6 @@ import pdb
 import os
 import argparse
 from time import perf_counter
-import subprocess
-
-# from memory_profiler import memory_usage
 
 EPS = 1e-6
 
@@ -17,86 +13,18 @@ EPS = 1e-6
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="VerdictDB for AQP")
     parser.add_argument("--data_name", type=str, required=True, help="Data name")
+    parser.add_argument("--do_insert", action="store_true", help="Do insertion")
     parser.add_argument("--task_type", type=str, default="sum", help="Task type")
-    parser.add_argument("--nqueries", type=int, default=100, help="Number of queries")
+    parser.add_argument("--nqueries", type=int, default=1000, help="Number of queries")
     parser.add_argument("--from_histogram", action="store_true", help="From sypnosis")
-    parser.add_argument("--sample_ratio", type=float, default=0.1, help="Sample ratio")
+    parser.add_argument("--sample_ratio", type=float, default=0.01, help="Sample ratio")
     parser.add_argument("--ndim_input", type=int, default=1, help="Input dimension")
-    # Only for latency measurement
-    parser.add_argument("--save_mem", action="store_true", help="Reduce memory usage")
-
     args = parser.parse_args()
 
     if args.from_histogram:
         args.sample_ratio = 1.0
     print(args)
     return args
-
-
-def create_mysql_conn():
-    mysql_conn = pymysql.connect(
-        host="localhost", port=3306, user="root", passwd="", autocommit=True
-    )
-    return mysql_conn
-
-
-def get_data_sample(data_name):
-    # Change #1
-    foldername = data_name if data_name != "store_sales" else "tpc-ds"
-    filename = (
-        f"histogram{args.ndim_input}d.csv"
-        if args.from_histogram
-        else f"dataset_{args.task_type}.csv"
-    )
-    if args.save_mem:
-        # Make sure that data is already randomly shuffled
-        if not args.from_histogram:
-            command = f"wc -l data/{foldername}/{filename}"
-            result = subprocess.run(command, capture_output=True, text=True, shell=True)
-
-            if result.returncode == 0:
-                output = result.stdout
-                # Get the number of rows in the file, first row is the header
-                n_all_rows = int(output.split()[0]) - 1
-            else:
-                error = result.stderr
-                raise Exception(f"Shell command error: {error}")
-            nrows = int(n_all_rows * args.sample_ratio)
-        else:
-            nrows = None
-
-        df = pd.read_csv(
-            f"data/{foldername}/{filename}", usecols=[dep, indep], nrows=nrows
-        )[[dep, indep]].dropna()
-
-    else:
-        df = pd.read_csv(f"data/{foldername}/{filename}", usecols=[dep, indep])[
-            [dep, indep]
-        ].dropna()
-        df = df.sample(frac=args.sample_ratio, random_state=42)
-
-    return df
-
-
-def add_data(args, mysql_conn):
-    data_name = args.data_name
-    df = get_data_sample(data_name)
-
-    table_name = f"{data_name}.{dep}"
-    start = perf_counter()
-
-    cur = mysql_conn.cursor()
-    cur.execute(f"DROP SCHEMA IF EXISTS {data_name}")
-    cur.execute(f"CREATE SCHEMA {data_name}")
-    cur.execute(f"CREATE TABLE {table_name} ({dep} double, {indep} double)")
-
-    cur.executemany(f"INSERT INTO {table_name} VALUES (%s, %s)", df.values.tolist())
-
-    cur.close()
-    print(f"Data added to database in {perf_counter() - start:.4f} seconds")
-
-    size_in_KB = len(df) * 2 * 4 / 1024
-    return size_in_KB, table_name
 
 
 def create_verdict_conn():
@@ -108,96 +36,50 @@ def create_verdict_conn():
     return verdict_conn
 
 
-def create_scramble_table(verdict_conn, table_name):
+def get_size(scramble_table_name):
+    df = verdict_conn.sql(f"SELECT COUNT(*) FROM {scramble_table_name};")
+    nrows = df.iloc[0, 0]
+    ncols = 2  # 4 columns if extra columns are considered
+    bytes_per_value = 4
+    size = nrows * ncols * bytes_per_value / 1024
+    return size
+
+
+def create_scramble_table(table_name):
     scramble_table_name = f"{table_name}_scrambled"
     # create scramble table
     start = perf_counter()
-    verdict_conn.sql(f"DROP ALL SCRAMBLE {scramble_table_name};")
-
-    # Change #2
-    # ratio_str = f"RATIO {args.sample_ratio}"
-    ratio_str = f"RATIO 1.0"
+    df = verdict_conn.sql(f"SELECT * FROM {table_name} LIMIT 10;")
+    print(df.head())
+    try:
+        verdict_conn.sql(f"DROP SCRAMBLE {scramble_table_name} ON {table_name};")
+        # verdict_conn.sql(f"SELECT COUNT(*) FROM {scramble_table_name};")
+    except:
+        print(f"Scramble {scramble_table_name} table does not exist")
+        pass
 
     verdict_conn.sql(
-        f"CREATE SCRAMBLE {scramble_table_name} FROM {table_name} {ratio_str};"
+        f"CREATE SCRAMBLE {scramble_table_name} FROM {table_name} RATIO {args.sample_ratio} WHERE nth_insert=0;"
     )
     print(f"Scramble table created in {perf_counter() - start:.4f} seconds")
-    return scramble_table_name
+
+    # Get number of rows in scramble table
+    original_size = get_size(scramble_table_name)
+
+    return (scramble_table_name, original_size)
 
 
-def query_with_insert(
-    args, verdict_conn, mysql_conn, table_name, scramble_table_name, size_in_KB
-):
-    data_name = args.data_name
-
-    cur = mysql_conn.cursor()
-
-    foldername = data_name if data_name != "store_sales" else "tpc-ds"
-    df_insert = pd.read_csv(
-        f"data/update_data/{foldername}/insert.csv", header=0, usecols=[dep, indep]
-    )[[dep, indep]].dropna()
-
-    indep_min = df_insert[indep].min()
-
-    # Load result dataframe from save_path if exists
-    save_path = f"results/{args.data_name}_verdictdb_insert.csv"
+def save_results(results, save_path):
     if os.path.exists(save_path):
         result_df = pd.read_csv(save_path)
+        result_df = pd.concat([result_df, pd.DataFrame(results)], ignore_index=True)
     else:
-        result_df = pd.DataFrame(
-            columns=[
-                "size(KB)",
-                "query_percent",
-                "nth_insert",
-                "avg_rel_error",
-                "avg_query_time",
-            ]
-        )
-    results = []
+        result_df = pd.DataFrame(results)
 
-    # Run queries
-    query_path = f"query/{args.data_name}_insert_{args.ndim_input}D_nonzeros.npz"
-    npzfile = np.load(query_path, allow_pickle=True)
-
-    for query_percent, query_group in npzfile.items():
-        n_insert_batch = query_group.shape[0] - 1
-        batch_size = int(len(df_insert) / n_insert_batch)
-        for i, queries in enumerate(query_group):
-            if i == 0:
-                # The 0th are queries of the original data
-                continue
-            queries = queries[: args.nqueries]
-
-            insert_batch = df_insert[batch_size * i : batch_size * (i + 1)]
-            insert_sample = insert_batch.sample(frac=args.sample_ratio, random_state=42)
-            cur.execute(f"TRUNCATE {table_name}")
-            cur.executemany(
-                f"INSERT INTO {table_name} VALUES (%s, %s)",
-                insert_sample.values.tolist(),
-            )
-
-            verdict_conn.sql(
-                f"APPEND SCRAMBLE {scramble_table_name} WHERE {indep} >= {indep_min}"
-            )
-
-            avg_rel_error, avg_query_time = query(
-                args, verdict_conn, queries, scramble_table_name, query_percent, i
-            )
-            results.append(
-                [size_in_KB, query_percent, i, avg_rel_error, avg_query_time]
-            )
-
-    result_df = pd.concat(
-        [result_df, pd.DataFrame(results, columns=result_df.columns)], ignore_index=True
-    )
     result_df.to_csv(save_path, index=False)
 
-    cur.close()
 
-
-def query(
-    args, verdict_conn, queries, scramble_table_name, query_percent, ith_insert=""
-):
+def query(args, queries, scramble_table_name, query_percent, ith_insert):
     # run query
     start = perf_counter()
     total_rel_error = 0.0
@@ -221,19 +103,77 @@ def query(
     avg_rel_error = total_rel_error / args.nqueries
     avg_query_time = (perf_counter() - start) / args.nqueries
 
-    print(
-        f"{query_percent}%-{ith_insert}th insert, average relative error: {avg_rel_error:.4f}"
-    )
+    query_percent = int(float(query_percent) * 100)
+    print(f"{query_percent}%-{ith_insert}th insert, avg_rel_error: {avg_rel_error:.4f}")
     print(f"Avg execute time {avg_query_time:.4f} seconds")
 
     return avg_rel_error, avg_query_time
+
+
+def query_original(scramble_table_name, original_size, save_path):
+    results = []
+    npzfile = np.load(f"query/{args.data_name}_{args.task_type}_1D_nonzeros.npz")
+    for query_percent in npzfile.keys():
+        if query_percent != "0.1":
+            continue
+        queries = npzfile[query_percent][: args.nqueries]
+        avg_rel_error, avg_query_time = query(
+            args, queries, scramble_table_name, query_percent, 0
+        )
+
+        results.append(
+            {
+                "query_percent": query_percent,
+                "original_size(KB)": round(original_size, 2),
+                "size(KB)": round(original_size, 2),
+                "nth_insert": 0,
+                "avg_rel_error": round(avg_rel_error, 4),
+                "avg_query_time": round(avg_query_time, 6),
+            }
+        )
+    save_results(results, save_path)
+
+
+def query_after_insertion(args, scramble_table_name, original_size, save_path):
+    results = []
+    # Run queries
+    query_path = f"query/{args.data_name}_insert_{args.ndim_input}D_nonzeros.npz"
+    npzfile = np.load(query_path, allow_pickle=True)
+
+    for query_percent, query_group in npzfile.items():
+        for i, queries in enumerate(query_group):
+            if i == 0:
+                # The 0th are queries of the original data
+                continue
+            queries = queries[: args.nqueries]
+
+            verdict_conn.sql(
+                f"APPEND SCRAMBLE {scramble_table_name} WHERE nth_insert={i}"
+            )
+            avg_rel_error, avg_query_time = query(
+                args, queries, scramble_table_name, query_percent, i
+            )
+            curr_size = get_size(scramble_table_name)
+
+            results.append(
+                {
+                    "query_percent": query_percent,
+                    "original_size(KB)": round(original_size, 2),
+                    "size(KB)": round(curr_size, 2),
+                    "nth_insert": i,
+                    "avg_rel_error": round(avg_rel_error, 4),
+                    "avg_query_time": round(avg_query_time, 6),
+                }
+            )
+
+    save_results(results, save_path)
 
 
 if __name__ == "__main__":
 
     args = parse_args()
 
-    task_type = "sum"
+    task_type = args.task_type
 
     if args.data_name == "store_sales":
         indep = "list_price"
@@ -250,42 +190,14 @@ if __name__ == "__main__":
     else:
         raise ValueError(f"No support for {args.data_name} for 1D input")
 
-    npzfile = np.load(f"query/{args.data_name}_{args.task_type}_1D_nonzeros.npz")
+    table_name = f"{args.data_name}.{dep}"
 
-    mysql_conn = create_mysql_conn()
-    size_in_KB, table_name = add_data(args, mysql_conn)
-
+    insert_str = "_insert" if args.do_insert else ""
+    save_path = f"results/{args.data_name}_verdictdb{insert_str}.csv"
     # Create scramble table
     verdict_conn = create_verdict_conn()
-    scramble_table_name = create_scramble_table(verdict_conn, table_name)
 
-    # Start querying using scramble table
-
-    # Load result dataframe from save_path if exists
-    save_path = f"results/{args.data_name}_verdictdb.csv"
-    if os.path.exists(save_path):
-        df = pd.read_csv(save_path)
-    else:
-        df = pd.DataFrame(
-            columns=["size(KB)", "query_percent", "avg_rel_error", "avg_query_time"]
-        )
-
-    # Collect results and append to dataframe
-    results = []
-    for query_percent in npzfile.keys():
-        if query_percent != "0.1":
-            continue
-        queries = npzfile[query_percent][: args.nqueries]
-        avg_rel_error, avg_query_time = query(
-            args, verdict_conn, queries, scramble_table_name, query_percent
-        )
-        avg_rel_error = round(avg_rel_error, 4)
-        avg_query_time = round(avg_query_time, 4)
-        results.append([size_in_KB, query_percent, avg_rel_error, avg_query_time])
-
-    # df = pd.concat([df, pd.DataFrame(results, columns=df.columns)], ignore_index=True)
-    # df.to_csv(save_path, index=False)
-
-    query_with_insert(
-        args, verdict_conn, mysql_conn, table_name, scramble_table_name, size_in_KB
-    )
+    scramble_table_name, original_size = create_scramble_table(table_name)
+    query_original(scramble_table_name, original_size, save_path)
+    if args.do_insert:
+        query_after_insertion(args, scramble_table_name, original_size, save_path)

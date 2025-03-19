@@ -37,13 +37,13 @@ def parse_args() -> argparse.Namespace:
         help="range is [-output_scale, output_scale]",
     )
     parser.add_argument(
-        "--sample_ratio", type=float, default=0.1, help="Sample ratio for scrambling"
+        "--sample_ratio", type=float, default=0.1, help="Sample ratio for training data"
     )
     # Training hyperparameters
     parser.add_argument("--units", type=int, default=200, help="Number of hidden units")
     parser.add_argument("--epochs", type=int, default=1000, help="Number of epochs")
     parser.add_argument("--print_every", type=int, default=100, help="Print every")
-    parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate")
+    parser.add_argument("--lr", type=float, default=3e-4, help="Learning rate")
     parser.add_argument("--batch_size", type=int, default=1024, help="Batch size")
     parser.add_argument("--gpu", type=int, default=0, help="GPU ID")
     parser.add_argument("--disable_tqdm", action="store_true", help="Disable tqdm")
@@ -53,11 +53,21 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--nqueries", type=int, default=5000, help="Number of queries")
     parser.add_argument("--task_type", type=str, default="sum", help="Task type")
     # Update arguments
+    parser.add_argument("--run_inserts", action="store_true", help="Run inserts")
     parser.add_argument(
         "--n_insert", type=int, default=10_000_000, help="Number of inserts"
     )
     parser.add_argument(
-        "--n_insert_batch", type=int, default=20, help="Number of inserts"
+        "--n_insert_batch", type=int, default=4, help="Number of inserts"
+    )
+    parser.add_argument(
+        "--no_retrain", action="store_true", help="No retrain after insert"
+    )
+    parser.add_argument(
+        "--retrain_every_n_insert",
+        type=int,
+        default=2,
+        help="Retrain every n insert batchs",
     )
     parser.add_argument(
         "--buffer_capacity", type=int, default=1000, help="Buffer capacity"

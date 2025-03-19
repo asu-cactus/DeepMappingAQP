@@ -15,33 +15,12 @@ def read_data(args) -> pd.DataFrame:
     data_name = args.data_name
     task_type = args.task_type
     usecols = [args.dep] + args.indeps
-
-    if data_name == "store_sales":
-        df = pd.read_csv(
-            f"data/tpc-ds/dataset_{task_type}.csv",
-            header=0,
-            usecols=usecols,
-        )
-    elif data_name == "flights":
-        df = pd.read_csv(
-            f"data/flights/dataset_{task_type}.csv",
-            header=0,
-            usecols=usecols,
-        )
-    elif data_name == "pm25":
-        df = pd.read_csv(
-            f"data/pm25/dataset_{task_type}.csv",
-            header=0,
-            usecols=usecols,
-        )
-    elif data_name == "ccpp":
-        df = pd.read_csv(
-            f"data/ccpp/dataset_{task_type}.csv",
-            header=0,
-            usecols=usecols,
-        )
-    else:
-        raise ValueError(f"Unknown data_name: {data_name}")
+    folder_name = data_name if data_name != "store_sales" else "tpc-ds"
+    df = pd.read_csv(
+        f"data/{folder_name}/dataset_{task_type}.csv",
+        header=0,
+        usecols=usecols,
+    )
     df = df.dropna()
     return df
 
@@ -49,33 +28,12 @@ def read_data(args) -> pd.DataFrame:
 def read_insertion_data(args) -> pd.DataFrame:
     data_name = args.data_name
     usecols = [args.dep] + args.indeps
-
-    if data_name == "store_sales":
-        df = pd.read_csv(
-            f"data/update_data/tpc-ds/insert.csv",
-            header=0,
-            usecols=usecols,
-        )
-    elif data_name == "flights":
-        df = pd.read_csv(
-            f"data/update_data/flights/insert.csv",
-            header=0,
-            usecols=usecols,
-        )
-    elif data_name == "pm25":
-        df = pd.read_csv(
-            f"data/update_data/pm25/insert.csv",
-            header=0,
-            usecols=usecols,
-        )
-    elif data_name == "ccpp":
-        df = pd.read_csv(
-            f"data/update_data/ccpp/insert.csv",
-            header=0,
-            usecols=usecols,
-        )
-    else:
-        raise ValueError(f"Unknown data_name: {data_name}")
+    folder_name = data_name if data_name != "store_sales" else "tpc-ds"
+    df = pd.read_csv(
+        f"data/update_data/{folder_name}/insert.csv",
+        header=0,
+        usecols=usecols,
+    )
     df = df.dropna()
     return df
 
@@ -185,12 +143,16 @@ def prepare_full_data(args) -> tuple[np.ndarray, np.ndarray]:
     return X_all, y_all
 
 
-def prepare_full_data_with_insertion(args) -> tuple[np.ndarray, np.ndarray]:
+def prepare_full_data_with_insertion(
+    args, do_sample: bool = False
+) -> tuple[np.ndarray, np.ndarray]:
     # Only implement 1D input for now
     indep, dep = args.indeps[0], args.dep
     resolution = args.resolutions[0]
 
     df = read_data(args)
+    if do_sample:
+        df = df.sample(frac=args.sample_ratio, random_state=42)
     bin_edges, histogram = make_histogram1d(df, indep, dep, resolution)
     cum_sum = np.cumsum(histogram)
 
@@ -199,6 +161,8 @@ def prepare_full_data_with_insertion(args) -> tuple[np.ndarray, np.ndarray]:
     batch_size = int(len(df_insert) / args.n_insert_batch)
     for i in range(args.n_insert_batch):
         insert_batch = df_insert[batch_size * i : batch_size * (i + 1)]
+        if do_sample:
+            insert_batch = insert_batch.sample(frac=args.sample_ratio, random_state=42)
         _, batch_histogram = make_histogram1d(
             insert_batch, indep, dep, resolution, bin_edges
         )

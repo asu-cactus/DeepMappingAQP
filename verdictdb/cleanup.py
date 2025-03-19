@@ -21,19 +21,10 @@ def cleanup_scramble():
     scrambles = verdict_conn.sql("SHOW SCRAMBLES;")
     print(scrambles)
 
-    # pe = verdict_conn.sql("SELECT * FROM PE_scrambled;")
-    # print(pe)
-    # return
-
     verdict_conn.sql("DROP ALL SCRAMBLE flights.TAXI_OUT;")
     verdict_conn.sql("DROP ALL SCRAMBLE ccpp.PE;")
     verdict_conn.sql("DROP ALL SCRAMBLE pm25.pm25;")
     verdict_conn.sql("DROP ALL SCRAMBLE store_sales.wholesale_cost;")
-
-    verdict_conn.sql("DROP ALL SCRAMBLE flights.TAXI_OUT_scramble;")
-    verdict_conn.sql("DROP ALL SCRAMBLE ccpp.PE_scramble;")
-    verdict_conn.sql("DROP ALL SCRAMBLE pm25.pm25_scramble;")
-    verdict_conn.sql("DROP ALL SCRAMBLE store_sales.wholesale_cost_scramble;")
 
 
 if __name__ == "__main__":
