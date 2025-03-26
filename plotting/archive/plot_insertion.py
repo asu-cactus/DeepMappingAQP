@@ -25,4 +25,4 @@ plt.grid(True, linestyle="--", alpha=0.7)
 # Show the plot
 plt.tight_layout()
 # save figure to "plots/" directory
-plt.savefig(f"plots/{data_name}_insert_1D_nonzeros.png")
+plt.savefig(f"plots/{data_name}_insert.png")

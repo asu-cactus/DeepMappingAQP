@@ -146,7 +146,7 @@ if __name__ == "__main__":
 
     mysql_conn = create_mysql_conn()
     cur = mysql_conn.cursor()
-    # add_original_data(args, cur, dep, indep, table_name)
+    add_original_data(args, cur, dep, indep, table_name)
     add_insertion_data(args, cur, dep, indep, table_name)
     cur.close()
     mysql_conn.close()
