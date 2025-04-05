@@ -4,6 +4,18 @@ from matplotlib import gridspec
 import pandas as pd
 import os
 
+fontsize = 20
+plt.rcParams.update(
+    {
+        "font.size": fontsize,
+        "axes.labelsize": fontsize,
+        "xtick.labelsize": fontsize,
+        "ytick.labelsize": fontsize,
+        "legend.fontsize": 19,
+        "axes.titlesize": fontsize,
+    }
+)
+
 # Create plots directory if it doesn't exist
 os.makedirs("plots", exist_ok=True)
 
@@ -45,6 +57,12 @@ datasets = {
 
 # Method colors
 colors = {"DBEst++": "green", "VerdictDB": "orange", "DeepMapping++": "blue"}
+titles = {
+    "pm25": "PM2.5",
+    "ccpp": "CCPP",
+    "flights": "Flights",
+    "store_sales": "Store Sales",
+}
 
 
 def create_broken_axis_plot(fig, gs_pos, data_name, params, show_legend=False):
@@ -77,7 +95,7 @@ def create_broken_axis_plot(fig, gs_pos, data_name, params, show_legend=False):
             color=color,
         )
 
-    # Add synopsis lines and point
+    # Add synopsis lines and point - remove the label from here so it doesn't create duplicate entries
     ax1.axvline(x=params["synopsis_size"], color="red", linestyle="--")
     ax2.axvline(x=params["synopsis_size"], color="red", linestyle="--")
     ax2.plot(params["synopsis_size"], params["error"], "r*", markersize=10)
@@ -105,16 +123,39 @@ def create_broken_axis_plot(fig, gs_pos, data_name, params, show_legend=False):
     ax2.plot((1 - d, 1 + d), (1 - d, 1 + d), **kwargs)
 
     # Labels and grid
-    ax2.set_xlabel("Model/Data Size (KB)", fontsize=10)
-    ax1.set_ylabel("Average Relative Error", fontsize=10)
-    ax2.set_ylabel("Average Relative Error", fontsize=10)
-    ax1.set_title(f"{data_name.upper()}", fontsize=12)
-    ax1.grid(True, linestyle="--", alpha=0.7)
-    ax2.grid(True, linestyle="--", alpha=0.7)
+    ax2.set_xlabel("Model/Data Size (KB)")
+    ax2.set_ylabel("Average Relative Error")
+    ax1.set_title(f"{titles[data_name]} Dataset")
 
     # Add legend only to the first subplot
     if show_legend:
-        ax1.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
+        # Create custom legend entries
+        from matplotlib.lines import Line2D
+
+        custom_lines = [
+            Line2D([0], [0], color=colors["DBEst++"], marker="o", linestyle="-"),
+            Line2D([0], [0], color=colors["VerdictDB"], marker="o", linestyle="-"),
+            Line2D([0], [0], color=colors["DeepMapping++"], marker="o", linestyle="-"),
+            Line2D([0], [0], color="red", linestyle="--"),
+            Line2D([0], [0], marker="*", color="red", linestyle="none", markersize=10),
+        ]
+        custom_labels = [
+            "DBEst++",
+            "VerdictDB",
+            "DeepMapping++",
+            "Synopsis Size",
+            "Synopsis Error",
+        ]
+
+        # Place the legend in a better position to be visible
+        ax1.legend(
+            custom_lines,
+            custom_labels,
+            loc="upper center",
+            bbox_to_anchor=(0.5, 0.75),
+            frameon=True,
+            framealpha=0.9,
+        )
 
 
 # Create main figure
@@ -139,5 +180,5 @@ for i, (data_name, pos) in enumerate(positions.items()):
     )
 
 plt.tight_layout()
-plt.savefig("plots/all_datasets_error_comparison.png", dpi=300, bbox_inches="tight")
+plt.savefig("plots/all_datasets_error_comparison.pdf", dpi=300, bbox_inches="tight")
 plt.close()

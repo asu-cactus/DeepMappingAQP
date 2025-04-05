@@ -2,6 +2,18 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 
+fontsize = 20
+plt.rcParams.update(
+    {
+        "font.size": fontsize,
+        "axes.labelsize": fontsize,
+        "xtick.labelsize": fontsize,
+        "ytick.labelsize": fontsize,
+        "legend.fontsize": 19,
+        "axes.titlesize": fontsize,
+    }
+)
+
 # Create plots directory if it doesn't exist
 os.makedirs("plots", exist_ok=True)
 
@@ -69,14 +81,13 @@ for i, dataset in enumerate(datasets):
         color=colors["DBEst"],
         linestyle="-",
         marker="o",
-        label="DBEst",
+        label="DBEst++",
     )
 
     # Set title and labels
     ax.set_title(f"{titles[dataset]} Dataset")
-    ax.set_xlabel("Nth Insert")
+    ax.set_xlabel("nth Insert")
     ax.set_ylabel("Average Relative Error")
-    ax.grid(True, linestyle="--", alpha=0.7)
 
     # Set y-axis limit to 1.0 for all subplots
     ax.set_ylim(0, 1.1)
@@ -87,7 +98,5 @@ for i, dataset in enumerate(datasets):
 
 # Adjust layout and save
 plt.tight_layout()
-plt.savefig("plots/all_datasets_insertion_error.png", dpi=300, bbox_inches="tight")
+plt.savefig("plots/all_datasets_insertion_error.pdf", dpi=300, bbox_inches="tight")
 plt.close()
-
-print("Plot saved to plots/all_datasets_insertion_error.png")

@@ -114,8 +114,7 @@ def query_original(scramble_table_name, original_size, save_path):
     results = []
     npzfile = np.load(f"query/{args.data_name}_{args.task_type}_1D_nonzeros.npz")
     for query_percent in npzfile.keys():
-        if query_percent != "0.1":
-            continue
+
         queries = npzfile[query_percent][: args.nqueries]
         avg_rel_error, avg_query_time = query(
             args, queries, scramble_table_name, query_percent, 0

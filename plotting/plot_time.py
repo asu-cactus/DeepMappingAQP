@@ -2,6 +2,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
+fontsize = 20
+plt.rcParams.update(
+    {
+        "font.size": fontsize,
+        "axes.labelsize": fontsize,
+        "xtick.labelsize": fontsize,
+        "ytick.labelsize": fontsize,
+        "legend.fontsize": 19,
+        "axes.titlesize": fontsize,
+    }
+)
+
 # Define constants for each dataset
 dataset_configs = {
     "store_sales": {
@@ -10,7 +22,7 @@ dataset_configs = {
         "y_lims": (0, 0.045),
         "x_lims": (5400, 8100),
         "position": (0, 0),
-        "title": "Store Sales",
+        "title": "Store Sales Dataset",
     },
     "flights": {
         "sypnosis_size": 1941.97,
@@ -18,7 +30,7 @@ dataset_configs = {
         "y_lims": (0, 0.03),
         "x_lims": (1000, 2200),
         "position": (0, 1),
-        "title": "Flights",
+        "title": "Flights Dataset",
     },
     "ccpp": {
         "sypnosis_size": 2914.06,
@@ -26,7 +38,7 @@ dataset_configs = {
         "y_lims": (0, 0.03),
         "x_lims": (800, 3300),
         "position": (1, 0),
-        "title": "CCPP",
+        "title": "CCPP Dataset",
     },
     "pm25": {
         "sypnosis_size": 2148.44,
@@ -34,7 +46,7 @@ dataset_configs = {
         "y_lims": (0, 0.025),
         "x_lims": (1000, 2400),
         "position": (1, 1),
-        "title": "PM2.5",
+        "title": "PM2.5 Dataset",
     },
 }
 
@@ -42,7 +54,7 @@ dataset_configs = {
 method_colors = {"DeepMapping++": "blue", "VerdictDB": "orange", "DBEst++": "green"}
 
 # Create a figure with 2x2 subplots
-fig, axes = plt.subplots(2, 2, figsize=(16, 10))
+fig, axes = plt.subplots(2, 2, figsize=(16, 12))
 
 # Process each dataset and create a subplot
 for data_name, config in dataset_configs.items():
@@ -102,15 +114,12 @@ for data_name, config in dataset_configs.items():
     # Configure the subplot
     ax.set_ylim(config["y_lims"])
     ax.set_xlim(config["x_lims"])
-    ax.set_xlabel("Model/Data Size (KB)", fontsize=12)
-    ax.set_ylabel("Average Query Time (s)", fontsize=12)
-    ax.set_title(config["title"], fontsize=14)
-    ax.grid(True, linestyle="--", alpha=0.7)
+    ax.set_xlabel("Model/Data Size (KB)")
+    ax.set_ylabel("Average Query Time (s)")
+    ax.set_title(config["title"])
 
     # Add minor ticks for better readability
     ax.minorticks_on()
-    ax.grid(True, which="major", linestyle="--", alpha=0.7)
-    ax.grid(True, which="minor", linestyle=":", alpha=0.4)
 
     # Format y-axis to use scientific notation for small numbers
     ax.yaxis.set_major_formatter(plt.ScalarFormatter(useMathText=True))
@@ -124,14 +133,13 @@ fig.legend(
     loc="upper center",
     bbox_to_anchor=(0.5, 1.05),  # Move higher above the plots
     ncol=3,
-    fontsize=12,
     frameon=True,
 )
 
 # Adjust layout and spacing
 plt.tight_layout()
-plt.subplots_adjust(top=0.93)  # Increase top margin for the legend
+plt.subplots_adjust(top=0.90)  # Increase top margin for the legend
 
 # Save the figure
-plt.savefig("plots/all_datasets_time_comparison.png", dpi=300, bbox_inches="tight")
+plt.savefig("plots/all_datasets_time_comparison.pdf", dpi=300, bbox_inches="tight")
 plt.close()
