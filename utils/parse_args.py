@@ -73,7 +73,15 @@ def parse_args() -> argparse.Namespace:
         "--buffer_capacity", type=int, default=1000, help="Buffer capacity"
     )
 
+    # Deepmapping++ variants
+    parser.add_argument(
+        "--dm_variant",
+        type=str,
+        choices=["NHP", "NHR"],
+        help="DeepMapping++ variant",
+    )
     args = parser.parse_args()
+
     if args.ndim_input == 1:
         if args.data_name == "store_sales":
             args.indeps = ["list_price"]

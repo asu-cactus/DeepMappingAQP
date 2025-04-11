@@ -25,7 +25,7 @@ datasets = {
         "synopsis_size": 7773.42,
         "error": 0.0008,
         "ax1_y_lims": (0.895, 0.904),
-        "ax2_y_lims": (0, 0.15),  # Changed from 0.035 to 0.15 to show VerdictDB
+        "ax2_y_lims": (-0.02, 0.15),  # Changed from 0.035 to 0.15 to show VerdictDB
         "d": 0.015,
         "x_lims": (5400, 8100),
     },
@@ -33,7 +33,7 @@ datasets = {
         "synopsis_size": 1941.97,
         "error": 0.0091,
         "ax1_y_lims": (0.95, 1.05),
-        "ax2_y_lims": (0, 0.9),  # Already good
+        "ax2_y_lims": (-0.02, 0.9),  # Already good
         "d": 0.01,
         "x_lims": (1000, 2200),
     },
@@ -41,7 +41,7 @@ datasets = {
         "synopsis_size": 2914.06,
         "error": 0.0014,
         "ax1_y_lims": (0.89, 0.91),
-        "ax2_y_lims": (0, 0.3),  # Already good
+        "ax2_y_lims": (-0.02, 0.3),  # Already good
         "d": 0.008,
         "x_lims": (800, 3300),
     },
@@ -49,7 +49,7 @@ datasets = {
         "synopsis_size": 2148.44,
         "error": 0.0008,
         "ax1_y_lims": (0.89, 0.91),
-        "ax2_y_lims": (0, 0.3),  # Already good
+        "ax2_y_lims": (-0.02, 0.3),  # Already good
         "d": 0.012,
         "x_lims": (1000, 2400),
     },
@@ -98,7 +98,7 @@ def create_broken_axis_plot(fig, gs_pos, data_name, params, show_legend=False):
     # Add synopsis lines and point - remove the label from here so it doesn't create duplicate entries
     ax1.axvline(x=params["synopsis_size"], color="red", linestyle="--")
     ax2.axvline(x=params["synopsis_size"], color="red", linestyle="--")
-    ax2.plot(params["synopsis_size"], params["error"], "r*", markersize=10)
+    ax2.plot(params["synopsis_size"], params["error"], "r*", markersize=20)
 
     # Set limits and style
     ax1.set_ylim(params["ax1_y_lims"])

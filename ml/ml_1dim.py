@@ -28,9 +28,9 @@ warnings.filterwarnings("error")
 AUX_EMPTY = -float("inf")
 
 
-def get_model(hidden_size: int) -> nn.Module:
+def get_model(hidden_size: int, in_units: int = 1) -> nn.Module:
     model = nn.Sequential(
-        nn.Linear(1, hidden_size, bias=True),
+        nn.Linear(in_units, hidden_size, bias=True),
         nn.ReLU(),
         nn.Linear(hidden_size, hidden_size, bias=True),
         nn.ReLU(),
@@ -45,14 +45,21 @@ def train(
     model: nn.Module,
     dataloader: DataLoader,
     ith_update: int = 0,
+    variant: str = "",
 ) -> nn.Module:
     dirname = "saved_models"
-    save_path = f"{dirname}/{args.data_name}_{args.units}units_update{ith_update}th.pth"
+    if variant:
+        save_path = f"{dirname}/{args.data_name}_{args.units}units_{variant}.pth"
+    else:
+        save_path = (
+            f"{dirname}/{args.data_name}_{args.units}units_update{ith_update}th.pth"
+        )
     device = torch.device(
         f"cuda:{args.gpu}" if args.gpu >= 0 and torch.cuda.is_available() else "cpu"
     )
     # Load and return model if exist
     if os.path.exists(save_path):
+        print(f"Loading model from {save_path}")
         model.load_state_dict(
             torch.load(save_path, weights_only=True, map_location=device)
         )
@@ -229,6 +236,139 @@ def test(
     save_results(results, f"results/{args.data_name}_DM.csv")
 
 
+def test_NHP(
+    args,
+    model: nn.Module,
+    aux_struct: np.array,
+    X_scaler: StandardScaler,
+    y_scaler: MinMaxScaler,
+    X_min: float,
+):
+    query_path = (
+        f"query/{args.data_name}_{args.task_type}_{args.ndim_input}D_nonzeros.npz"
+    )
+    device = torch.device("cpu")
+    model = model.to(device)
+
+    size_in_bytes = get_combined_size(model, aux_struct)
+    size_in_KB = size_in_bytes / 1024
+
+    # Load queries
+    results = []
+    npzfile = np.load(query_path)
+    for query_percent in npzfile.keys():
+        queries = npzfile[query_percent][: args.nqueries]
+
+        # The first column is the start of the query range and the second column is the end
+        start = perf_counter()
+        total_rel_error = 0.0
+        for query in queries:
+            X, y = query[:2], query[2]
+            aux_lb_ub_indices = ((X - X_min) / args.resolutions[0]).round().astype(int)
+            aux_indices = np.arange(
+                aux_lb_ub_indices[0], aux_lb_ub_indices[1] + 1, dtype=int
+            )
+
+            aux_out = aux_struct.get(aux_indices, AUX_EMPTY)
+            X = X_min + aux_indices * args.resolutions[0]
+            X = X_scaler.transform(X.reshape(-1, 1))
+            with torch.no_grad():
+                X = torch.tensor(X, dtype=torch.float32).to(device)
+                y_pred = model(X).cpu().numpy()
+            y_pred = y_scaler.inverse_transform(y_pred).reshape(-1)
+
+            # y_hat = np.where(aux_out != 0, aux_out, y_pred)
+            y_hat = np.where(aux_out != AUX_EMPTY, aux_out, y_pred)
+            y_hat = y_hat.sum()
+            y_hat /= args.sample_ratio
+            rel_error = np.absolute(y_hat - y) / (y + 1e-6)
+
+            total_rel_error += rel_error
+
+        avg_rel_error = total_rel_error / len(queries)
+        avg_time = (perf_counter() - start) / len(queries)
+        print(f"{query_percent} query:  executed in {avg_time:.6f} seconds on average.")
+        print(f"Avg rel error: {avg_rel_error:.4f}")
+
+        results.append(
+            {
+                "size(KB)": round(size_in_KB, 2),
+                "query_percent": query_percent,
+                "avg_rel_error": round(avg_rel_error, 4),
+                "avg_query_time": round(avg_time, 6),
+            }
+        )
+    save_results(results, f"results/{args.data_name}_NHP.csv")
+
+
+def test_NHR(
+    args,
+    model: nn.Module,
+    aux_struct: AuxStruct,
+    X_scaler: StandardScaler,
+    y_scaler: MinMaxScaler,
+    X_min: float,
+    X_range: float,
+    train_data_lens: np.array,
+):
+    train_data_len_offsets = np.cumsum(train_data_lens)
+
+    query_path = (
+        f"query/{args.data_name}_{args.task_type}_{args.ndim_input}D_nonzeros.npz"
+    )
+    device = torch.device("cpu")
+    model = model.to(device)
+
+    size_in_bytes = get_combined_size(model, aux_struct)
+    size_in_KB = size_in_bytes / 1024
+
+    # Load queries
+    results = []
+    npzfile = np.load(query_path)
+    for i, query_percent in enumerate(npzfile.keys()):
+        queries = npzfile[query_percent][: args.nqueries]
+
+        # The first column is the start of the query range and the second column is the end
+        start = perf_counter()
+        total_rel_error = 0.0
+        for query in queries:
+            X, y = query[:2], query[2]
+            lb_index = ((X[0] - X_min) / args.resolutions[0]).round().astype(int)
+            aux_indices = lb_index + train_data_len_offsets[i]
+
+            aux_out = aux_struct.get(int(aux_indices), AUX_EMPTY)
+
+            X = X_scaler.transform(np.array([[X[0], (i + 1) * 0.05]]))
+            with torch.no_grad():
+                X = torch.tensor(X, dtype=torch.float32).to(device)
+                y_pred = model(X).cpu().numpy()
+            # y_pred = y_scaler.inverse_transform(y_pred).reshape(-1)
+            # y_hat = np.where(aux_out != AUX_EMPTY, aux_out, y_pred)
+
+            y_pred = y_scaler.inverse_transform(y_pred)[0][0]
+            y_hat = aux_out if aux_out != AUX_EMPTY else y_pred
+
+            y_hat /= args.sample_ratio
+            rel_error = np.absolute(y_hat - y) / (y + 1e-6)
+
+            total_rel_error += rel_error
+
+        avg_rel_error = total_rel_error / len(queries)
+        avg_time = (perf_counter() - start) / len(queries)
+        print(f"{query_percent} query:  executed in {avg_time:.6f} seconds on average.")
+        print(f"Avg rel error: {avg_rel_error:.4f}")
+
+        results.append(
+            {
+                "size(KB)": round(size_in_KB, 2),
+                "query_percent": query_percent,
+                "avg_rel_error": round(avg_rel_error, 4),
+                "avg_query_time": round(avg_time, 6),
+            }
+        )
+    save_results(results, f"results/{args.data_name}_NHR.csv")
+
+
 def load_ranges_from_json(args):
     folder_name = args.data_name if args.data_name != "store_sales" else "tpc-ds"
     with open(f"data/update_data/{folder_name}/ranges.json", "r") as f:
@@ -350,7 +490,7 @@ def test_with_inserts(
                     "query_percent": query_percent,
                     "nth_insert": i,
                     "avg_rel_error_w_buffer": round(avg_rel_error_w_buffer, 4),
-                    "avg_rel_error_wo_buffer": round(avg_rel_error_wo_buffer,4),
+                    "avg_rel_error_wo_buffer": round(avg_rel_error_wo_buffer, 4),
                     "avg_time_w_buffer": round(avg_time_w_buffer, 6),
                     "avg_time_wo_buffer": round(avg_time_wo_buffer, 6),
                 }

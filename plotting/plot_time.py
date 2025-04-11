@@ -19,7 +19,7 @@ dataset_configs = {
     "store_sales": {
         "sypnosis_size": 7773.42,
         "qtime": 1.35e-5,
-        "y_lims": (0, 0.045),
+        "y_lims": (-0.001, 0.045),
         "x_lims": (5400, 8100),
         "position": (0, 0),
         "title": "Store Sales Dataset",
@@ -27,7 +27,7 @@ dataset_configs = {
     "flights": {
         "sypnosis_size": 1941.97,
         "qtime": 1.34e-5,
-        "y_lims": (0, 0.03),
+        "y_lims": (-0.001, 0.03),
         "x_lims": (1000, 2200),
         "position": (0, 1),
         "title": "Flights Dataset",
@@ -35,7 +35,7 @@ dataset_configs = {
     "ccpp": {
         "sypnosis_size": 2914.06,
         "qtime": 1.33e-5,
-        "y_lims": (0, 0.03),
+        "y_lims": (-0.001, 0.03),
         "x_lims": (800, 3300),
         "position": (1, 0),
         "title": "CCPP Dataset",
@@ -43,7 +43,7 @@ dataset_configs = {
     "pm25": {
         "sypnosis_size": 2148.44,
         "qtime": 2.47e-5,
-        "y_lims": (0, 0.025),
+        "y_lims": (-0.001, 0.025),
         "x_lims": (1000, 2400),
         "position": (1, 1),
         "title": "PM2.5 Dataset",
@@ -107,7 +107,7 @@ for data_name, config in dataset_configs.items():
         config["sypnosis_size"],
         config["qtime"],
         "r*",
-        markersize=10,
+        markersize=20,
         label="Synopsis Time" if row == 0 and col == 0 else None,
     )
 

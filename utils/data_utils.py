@@ -175,17 +175,47 @@ def prepare_full_data_with_insertion(
     return X_all, y_all
 
 
+def save_traindata(name_recognizer):
+    def inner(func):
+
+        def wrapper(*pargs, **kwargs):
+            args = pargs[0]
+            # Load data if exists:
+            data_name = args.data_name
+            folder_name = data_name if data_name != "store_sales" else "tpc-ds"
+            full_path = f"data/{folder_name}/traindata_{name_recognizer}_sr{args.sample_ratio}.npz"
+            if os.path.exists(full_path):
+                npzfile = np.load(full_path)
+                X_train, y_train = npzfile["X"], npzfile["y"]
+                try:
+                    train_data_lens = npzfile["train_data_lens"]
+                except KeyError:
+                    return X_train, y_train
+                else:
+                    return X_train, y_train, train_data_lens
+
+            outputs = func(*pargs, **kwargs)
+            if len(outputs) == 2:
+                X_train, y_train = outputs
+                np.savez(full_path, X=X_train, y=y_train)
+                return X_train, y_train
+            elif len(outputs) == 3:
+                X_train, y_train, train_data_lens = outputs
+                # Save the train_data_lens as well
+                np.savez(
+                    full_path, X=X_train, y=y_train, train_data_lens=train_data_lens
+                )
+                return X_train, y_train, train_data_lens
+            else:
+                raise ValueError(f"Expected 2 or 3 outputs, but got {len(outputs)}")
+
+        return wrapper
+
+    return inner
+
+
+@save_traindata("1D")
 def prepare_training_data(args) -> tuple[np.ndarray, np.ndarray]:
-    # Load data if exists:
-    data_name = args.data_name
-    folder_name = data_name if data_name != "store_sales" else "tpc-ds"
-    full_path = (
-        f"data/{folder_name}/traindata_{args.ndim_input}D_sr{args.sample_ratio}.npz"
-    )
-    if os.path.exists(full_path):
-        npzfile = np.load(full_path)
-        X, y = npzfile["X"], npzfile["y"]
-        return X, y
 
     df = read_data(args)
 
@@ -205,9 +235,58 @@ def prepare_training_data(args) -> tuple[np.ndarray, np.ndarray]:
         df, args.indeps, args.dep, args.ndim_input, args.resolutions, bin_edges
     )
 
-    # Save training data
-    np.savez(full_path, X=X_train, y=y_train)
     return X_train, y_train
+
+
+@save_traindata("NHP")
+def prepare_training_data_for_NHP(args):
+    df = read_data(args)
+    if args.sample_ratio < 1.0:
+        df = df.sample(frac=args.sample_ratio, random_state=42)
+    bin_edges, histogram = make_histogram1d(
+        df, args.indeps[0], args.dep, args.resolutions[0]
+    )
+    X_train = bin_edges[1:].reshape(-1, 1)
+    y_train = histogram.reshape(-1, 1)
+
+    return X_train, y_train
+
+
+@save_traindata("NHR")
+def prepare_training_data_for_NHR(args):
+    df = read_data(args)
+    if args.sample_ratio < 1.0:
+        df = df.sample(frac=args.sample_ratio, random_state=42)
+    bin_edges, histogram = make_histogram1d(
+        df, args.indeps[0], args.dep, args.resolutions[0]
+    )
+
+    X_train = []
+    y_train = []
+    train_data_lens = []
+    range_percents = [0.05, 0.1, 0.15]
+
+    for range_percent in range_percents:
+        # Use sliding window to calculate the range sum
+        query_range_size = int(len(histogram) * range_percent)
+        train_data_len = len(histogram) - query_range_size
+        range_sum = np.zeros(train_data_len)
+        for i in range(train_data_len):
+            range_sum[i] = np.sum(histogram[i : i + query_range_size])
+        y_train.append(range_sum.reshape(-1, 1))
+
+        X_train_ = bin_edges[:train_data_len]
+        X_train_ = np.column_stack((X_train_, np.ones(train_data_len) * range_percent))
+        X_train.append(X_train_)
+
+        train_data_lens.append(train_data_len)
+
+    X_train = np.vstack(X_train)
+    y_train = np.vstack(y_train)
+    assert X_train.shape[0] == y_train.shape[0]
+    train_data_lens = np.array(train_data_lens)
+
+    return X_train, y_train, train_data_lens
 
 
 def standardize_data(
