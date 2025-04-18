@@ -187,7 +187,7 @@ if __name__ == "__main__":
     args = parse_args()
     if args.ndim_input == 1:
         # generate_1d_queries(args)
-        # generate_1d_queries_nonzeros(args)
+        generate_1d_queries_nonzeros(args)
         generate_1d_insert_queries_nonzero(args)
     else:
         generate_2d_queries(args)

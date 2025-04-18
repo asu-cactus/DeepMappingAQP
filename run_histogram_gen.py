@@ -2,7 +2,6 @@ from utils.parse_args import parse_args
 from utils.data_utils import make_histogram1d, read_data
 import pandas as pd
 import numpy as np
-from matplotlib import pyplot as plt
 import pdb
 
 
