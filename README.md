@@ -78,7 +78,7 @@ bash run_insert.sh
 ```
 If you want to know the model size, you can get a model size chart by running
 ```
-get_model_sizes.py
+python get_model_sizes.py
 ```
 
 ### Synopsis
