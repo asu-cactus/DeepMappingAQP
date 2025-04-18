@@ -56,7 +56,6 @@ def create_scramble_table(table_name):
         # verdict_conn.sql(f"SELECT COUNT(*) FROM {scramble_table_name};")
     except:
         print(f"Scramble {scramble_table_name} table does not exist")
-        pass
 
     verdict_conn.sql(
         f"CREATE SCRAMBLE {scramble_table_name} FROM {table_name} RATIO {args.sample_ratio} WHERE nth_insert=0;"
@@ -141,9 +140,9 @@ def query_after_insertion(args, scramble_table_name, original_size, save_path):
 
     for query_percent, query_group in npzfile.items():
         for i, queries in enumerate(query_group):
-            if i == 0:
-                # The 0th are queries of the original data
-                continue
+            # if i == 0:
+            #     # The 0th are queries of the original data
+            #     continue
             queries = queries[: args.nqueries]
 
             verdict_conn.sql(

@@ -1,7 +1,20 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import argparse
+import numpy as np
 import os
 
+# Set up argument parser
+parser = argparse.ArgumentParser(description="Plotting script for different ranges")
+parser.add_argument(
+    "--data_name",
+    type=str,
+    required=True,
+    help="Name of the dataset to plot",
+)
+args = parser.parse_args()
+# Set the data name based on the argument or default value
+data_name = args.data_name
 fontsize = 20
 plt.rcParams.update(
     {
@@ -18,9 +31,13 @@ plt.rcParams.update(
 base_dir = "results"
 
 # Load the datasets
-dm_data = pd.read_csv(os.path.join(base_dir, "pm25_DM.csv"))
-dbest_data = pd.read_csv(os.path.join(base_dir, "pm25_DBEst.csv"))
-vdb_data = pd.read_csv(os.path.join(base_dir, "pm25_verdictdb_full.csv"))
+dm_data = pd.read_csv(os.path.join(base_dir, f"{data_name}_DM.csv"))
+dbest_data = pd.read_csv(os.path.join(base_dir, f"{data_name}_DBEst.csv"))
+vdb_data = pd.read_csv(os.path.join(base_dir, f"{data_name}_verdictdb_full.csv"))
+
+dm_data["avg_rel_error"] = np.minimum(dm_data["avg_rel_error"], 1.0)
+dbest_data["avg_rel_err"] = np.minimum(dbest_data["avg_rel_err"], 1.0)
+vdb_data["avg_rel_error"] = np.minimum(vdb_data["avg_rel_error"], 1.0)
 
 # Rename columns for consistency
 vdb_data = vdb_data.rename(columns={"avg_rel_error": "avg_rel_err"})
@@ -31,13 +48,13 @@ dm_data = dm_data.rename(
 # Define query percentages and line styles
 query_percentages = [0.05, 0.1, 0.15]
 line_styles = ["-", "--", "-."]
-colors = {"DM": "blue", "DBEst": "red", "VerdictDB": "green"}
+colors = {"DM": "blue", "VerdictDB": "orange", "DBEst": "green"}
 markers = {"DM": "o", "DBEst": "s", "VerdictDB": "^"}
 # Define display names mapping
-display_names = {"DM": "DeepMapping++", "DBEst": "DBEst++", "VerdictDB": "VerdictDB"}
+display_names = {"DM": "DeepMapping-R", "VerdictDB": "VerdictDB", "DBEst": "DBEst++"}
 
 # Create figure with 1x2 subplots
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 7))
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
 
 # First plot DM data for all query percentages
 for i, qp in enumerate(query_percentages):
@@ -124,13 +141,15 @@ from matplotlib.lines import Line2D
 # Create a better structured legend
 handles, labels = [], []
 
-for method, color in colors.items():
+# Follow the specified ordering: DeepMapping-R, VerdictDB, DBEst++
+methods_order = ["DM", "VerdictDB", "DBEst"]
+for method in methods_order:
     for i, qp in enumerate(query_percentages):
         handles.append(
             Line2D(
                 [0],
                 [0],
-                color=color,
+                color=colors[method],
                 marker=markers[method],
                 linestyle=line_styles[i],
                 label=f"{display_names[method]} ({int(qp*100)}%)",
@@ -138,23 +157,23 @@ for method, color in colors.items():
         )
         labels.append(f"{display_names[method]} ({int(qp*100)}%)")
 
-# Move the legend above the subplots
+# Move the legend below the subplots
 fig.legend(
     handles=handles,
     ncol=3,
-    loc="upper center",
-    bbox_to_anchor=(0.5, 0.98),  # Position above the subplots
+    loc="lower center",
+    bbox_to_anchor=(0.5, -0.03),  # Position below the subplots
     frameon=True,
     borderaxespad=0.1,
 )
 
-# Adjust layout with more space at the top for the legend
+# Adjust layout with more space at the bottom for the legend
 plt.tight_layout()
-plt.subplots_adjust(top=0.80)  # Increased top margin to accommodate the legend
+plt.subplots_adjust(bottom=0.3)  # Increased bottom margin to accommodate the legend
 
 # Save the figure
 plt.savefig(
-    "plots/pm25_different_ranges.pdf",
-    dpi=300,
+    f"plots/{data_name}_different_ranges.png",
+    dpi=200,
     bbox_inches="tight",
 )

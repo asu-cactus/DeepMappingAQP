@@ -55,12 +55,12 @@ colors = {"DM": "blue", "NHP": "red"}  # Changed from NHR to NHP
 markers = {"DM": "o", "NHP": "s"}  # Changed from NHR to NHP
 # Define display names mapping
 display_names = {
-    "DM": "DeepMapping++",
-    "NHP": "Neural Histogram - Point",
+    "DM": "DeepMapping-R",
+    "NHP": "NHP",
 }  # Changed from NHR to NHP and updated the display name
 
 # Create figure with 1x2 subplots
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 7))
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
 
 # First plot DM data for all query percentages
 for i, qp in enumerate(query_percentages):
@@ -139,24 +139,27 @@ for method, color in colors.items():
             )
         )
         labels.append(f"{display_names[method]} ({int(qp*100)}%)")
-
-# Move the legend above the subplots
+rearrange_indices = [0, 3, 1, 4, 2, 5]
+handles = [handles[i] for i in rearrange_indices]
+labels = [labels[i] for i in rearrange_indices]
+# Move the legend to the bottom of the subplots
 fig.legend(
     handles=handles,
-    ncol=2,  # Changed from 3 to 2 since we only have 2 methods now
+    labels=labels,
+    ncol=3,  # Changed from 3 to 2 since we only have 2 methods now
     loc="upper center",
-    bbox_to_anchor=(0.5, 0.98),  # Position above the subplots
+    bbox_to_anchor=(0.5, 0.05),  # Position below the subplots
     frameon=True,
     borderaxespad=0.1,
 )
 
-# Adjust layout with more space at the top for the legend
+# Adjust layout with more space at the bottom for the legend
 plt.tight_layout()
-plt.subplots_adjust(top=0.80)  # Increased top margin to accommodate the legend
+plt.subplots_adjust(bottom=0.16)  # Increased bottom margin to accommodate the legend
 
 # Save the figure
 plt.savefig(
     "plots/pm25_dm_vs_nhp.pdf",  # Updated filename from dm_vs_nhr to dm_vs_nhp
-    dpi=300,
+    dpi=200,
     bbox_inches="tight",
 )

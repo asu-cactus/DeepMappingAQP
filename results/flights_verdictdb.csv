@@ -6,4 +6,3 @@ query_percent,original_size(KB),size(KB),nth_insert,avg_rel_error,avg_query_time
 0.1,1332.03,1332.03,0,1.6779,0.010844
 0.1,1318.28,1318.28,0,0.5362,0.01105
 0.1,1135.98,1135.98,0,0.8678,0.0108
-

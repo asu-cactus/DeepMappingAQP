@@ -51,10 +51,10 @@ dataset_configs = {
 }
 
 # Define colors for each method
-method_colors = {"DeepMapping++": "blue", "VerdictDB": "orange", "DBEst++": "green"}
+method_colors = {"DeepMapping-R": "blue", "VerdictDB": "orange", "DBEst++": "green"}
 
 # Create a figure with 2x2 subplots
-fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+fig, axes = plt.subplots(2, 2, figsize=(16, 11))
 
 # Process each dataset and create a subplot
 for data_name, config in dataset_configs.items():
@@ -64,6 +64,9 @@ for data_name, config in dataset_configs.items():
 
     # Load the dataset
     df = pd.read_csv(f"results/{data_name}.csv")
+
+    # Replace DeepMapping++ with DeepMapping-R in method column
+    df["method"] = df["method"].replace("DeepMapping++", "DeepMapping-R")
 
     # Plot each method
     for method in df["method"].unique():
@@ -90,7 +93,7 @@ for data_name, config in dataset_configs.items():
             linestyle="--",
             color=method_colors[method],
             label=(
-                f"{method} (t2medium)" if row == 0 and col == 0 else None
+                f"{method} (t2med)" if row == 0 and col == 0 else None
             ),  # Only add label in first subplot
             linewidth=2,
             markersize=6,
@@ -130,16 +133,16 @@ handles, labels = axes[0, 0].get_legend_handles_labels()
 fig.legend(
     handles,
     labels,
-    loc="upper center",
-    bbox_to_anchor=(0.5, 1.05),  # Move higher above the plots
-    ncol=3,
+    loc="lower center",
+    bbox_to_anchor=(0.5, 0.04),  # Move below the plots
+    ncol=4,
     frameon=True,
 )
 
 # Adjust layout and spacing
 plt.tight_layout()
-plt.subplots_adjust(top=0.90)  # Increase top margin for the legend
+plt.subplots_adjust(bottom=0.20)  # Increase bottom margin for the legend
 
 # Save the figure
-plt.savefig("plots/all_datasets_time_comparison.pdf", dpi=300, bbox_inches="tight")
+plt.savefig("plots/all_datasets_time_comparison.pdf", dpi=200, bbox_inches="tight")
 plt.close()

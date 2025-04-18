@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
+from matplotlib.lines import Line2D
 import pandas as pd
 import os
 
@@ -11,7 +12,7 @@ plt.rcParams.update(
         "axes.labelsize": fontsize,
         "xtick.labelsize": fontsize,
         "ytick.labelsize": fontsize,
-        "legend.fontsize": 19,
+        "legend.fontsize": 20,
         "axes.titlesize": fontsize,
     }
 )
@@ -124,42 +125,16 @@ def create_broken_axis_plot(fig, gs_pos, data_name, params, show_legend=False):
 
     # Labels and grid
     ax2.set_xlabel("Model/Data Size (KB)")
-    ax2.set_ylabel("Average Relative Error")
+    # Adjust the y-axis label position with labelpad parameter
+    # Higher negative value moves the label higher/closer to the axis
+    ax2.set_ylabel("             Average Relative Error", labelpad=20)
     ax1.set_title(f"{titles[data_name]} Dataset")
 
-    # Add legend only to the first subplot
-    if show_legend:
-        # Create custom legend entries
-        from matplotlib.lines import Line2D
-
-        custom_lines = [
-            Line2D([0], [0], color=colors["DBEst++"], marker="o", linestyle="-"),
-            Line2D([0], [0], color=colors["VerdictDB"], marker="o", linestyle="-"),
-            Line2D([0], [0], color=colors["DeepMapping++"], marker="o", linestyle="-"),
-            Line2D([0], [0], color="red", linestyle="--"),
-            Line2D([0], [0], marker="*", color="red", linestyle="none", markersize=10),
-        ]
-        custom_labels = [
-            "DBEst++",
-            "VerdictDB",
-            "DeepMapping++",
-            "Synopsis Size",
-            "Synopsis Error",
-        ]
-
-        # Place the legend in a better position to be visible
-        ax1.legend(
-            custom_lines,
-            custom_labels,
-            loc="upper center",
-            bbox_to_anchor=(0.5, 0.75),
-            frameon=True,
-            framealpha=0.9,
-        )
+    # Legend is now handled at the figure level, not in individual subplots
 
 
 # Create main figure
-fig = plt.figure(figsize=(15, 12))
+fig = plt.figure(figsize=(15, 9))
 
 # Create 2x2 grid (2 rows, 2 columns)
 gs_main = gridspec.GridSpec(2, 2, figure=fig)
@@ -175,10 +150,36 @@ positions = {
 
 # Create all subplots
 for i, (data_name, pos) in enumerate(positions.items()):
-    create_broken_axis_plot(
-        fig, pos, data_name, datasets[data_name], show_legend=(i == 0)
-    )
+    create_broken_axis_plot(fig, pos, data_name, datasets[data_name])
 
-plt.tight_layout()
-plt.savefig("plots/all_datasets_error_comparison.pdf", dpi=300, bbox_inches="tight")
+
+custom_lines = [
+    Line2D([0], [0], color=colors["DeepMapping++"], marker="o", linestyle="-"),
+    Line2D([0], [0], color=colors["VerdictDB"], marker="o", linestyle="-"),
+    Line2D([0], [0], color=colors["DBEst++"], marker="o", linestyle="-"),
+    Line2D([0], [0], color="red", linestyle="--"),
+    Line2D([0], [0], marker="*", color="red", linestyle="none", markersize=10),
+]
+custom_labels = [
+    "DeepMapping-R",
+    "VerdictDB",
+    "DBEst++",
+    "Synopsis Size",
+    "Synopsis Error",
+]
+
+# Add the legend to the bottom of the figure
+fig.legend(
+    custom_lines,
+    custom_labels,
+    loc="lower center",
+    bbox_to_anchor=(0.5, 0.01),
+    ncol=5,
+    frameon=True,
+    framealpha=0.9,
+)
+
+# Adjust layout to make room for the legend
+plt.tight_layout(rect=[0, 0.05, 1, 1])
+plt.savefig("plots/all_datasets_error_comparison.png", dpi=200, bbox_inches="tight")
 plt.close()
