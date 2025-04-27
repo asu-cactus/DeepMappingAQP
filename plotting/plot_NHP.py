@@ -12,6 +12,8 @@ plt.rcParams.update(
         "ytick.labelsize": fontsize,
         "legend.fontsize": 19,
         "axes.titlesize": fontsize,
+        "font.weight": "bold",
+        "axes.labelweight": "bold",
     }
 )
 

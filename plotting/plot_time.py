@@ -11,6 +11,8 @@ plt.rcParams.update(
         "ytick.labelsize": fontsize,
         "legend.fontsize": 19,
         "axes.titlesize": fontsize,
+        "font.weight": "bold",
+        "axes.labelweight": "bold",
     }
 )
 
@@ -46,7 +48,7 @@ dataset_configs = {
         "y_lims": (-0.001, 0.025),
         "x_lims": (1000, 2400),
         "position": (1, 1),
-        "title": "PM2.5 Dataset",
+        "title": "PM25 Dataset",
     },
 }
 
@@ -119,7 +121,7 @@ for data_name, config in dataset_configs.items():
     ax.set_xlim(config["x_lims"])
     ax.set_xlabel("Model/Data Size (KB)")
     ax.set_ylabel("Average Query Time (s)")
-    ax.set_title(config["title"])
+    ax.set_title(config["title"], fontweight="bold")
 
     # Add minor ticks for better readability
     ax.minorticks_on()

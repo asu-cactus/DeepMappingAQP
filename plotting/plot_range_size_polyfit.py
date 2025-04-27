@@ -58,75 +58,171 @@ display_names = {"DM": "DeepMapping-R", "VerdictDB": "VerdictDB", "DBEst": "DBEs
 # Create figure with 1x2 subplots
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
 
+# Create a common set of x points for the polynomial fits
+all_sizes = (
+    pd.concat(
+        [
+            dm_data["size(KB)"].drop_duplicates(),
+            dbest_data["size(KB)"].drop_duplicates(),
+            vdb_data["size(KB)"].drop_duplicates(),
+        ]
+    )
+    .drop_duplicates()
+    .sort_values()
+    .values
+)
+
+x_fit = np.linspace(min(all_sizes), max(all_sizes), 100)
+
 # First plot DM data for all query percentages
 for i, qp in enumerate(query_percentages):
     dm_filtered = dm_data[dm_data["query_percent"] == qp]
     dm_grouped = dm_filtered.groupby("size(KB)").mean().reset_index()
     dm_grouped = dm_grouped.sort_values("size(KB)")
 
-    ax1.plot(
+    # Scatter plot for data points
+    ax1.scatter(
         dm_grouped["size(KB)"],
         dm_grouped["avg_rel_err"],
         color=colors["DM"],
-        linestyle=line_styles[i],
         marker=markers["DM"],
-        label=f"{display_names['DM']} ({int(qp*100)}%)",
+        label=f"{display_names['DM']} ({int(qp*100)}%) points",
     )
 
-    ax2.plot(
+    # Polynomial fit (degree 2) for error
+    if len(dm_grouped) >= 3:  # Need at least 3 points for quadratic fit
+        poly_coeff = np.polyfit(dm_grouped["size(KB)"], dm_grouped["avg_rel_err"], 2)
+        poly_func = np.poly1d(poly_coeff)
+        ax1.plot(
+            x_fit,
+            poly_func(x_fit),
+            color=colors["DM"],
+            linestyle=line_styles[i],
+            label=f"{display_names['DM']} ({int(qp*100)}%) fit",
+        )
+
+    # Scatter plot for time
+    ax2.scatter(
         dm_grouped["size(KB)"],
         dm_grouped["avgtime"],
         color=colors["DM"],
-        linestyle=line_styles[i],
         marker=markers["DM"],
-        label=f"{display_names['DM']} ({int(qp*100)}%)",
+        label=f"{display_names['DM']} ({int(qp*100)}%) points",
     )
+
+    # Polynomial fit (degree 2) for time
+    if len(dm_grouped) >= 3:
+        poly_coeff_time = np.polyfit(dm_grouped["size(KB)"], dm_grouped["avgtime"], 2)
+        poly_func_time = np.poly1d(poly_coeff_time)
+        ax2.plot(
+            x_fit,
+            poly_func_time(x_fit),
+            color=colors["DM"],
+            linestyle=line_styles[i],
+            label=f"{display_names['DM']} ({int(qp*100)}%) fit",
+        )
 
 # Then plot DBEst data for all query percentages
 for i, qp in enumerate(query_percentages):
     dbest_filtered = dbest_data[dbest_data["query_percent"] == qp]
     dbest_filtered = dbest_filtered.sort_values("size(KB)")
 
-    ax1.plot(
+    # Scatter plot for data points
+    ax1.scatter(
         dbest_filtered["size(KB)"],
         dbest_filtered["avg_rel_err"],
         color=colors["DBEst"],
-        linestyle=line_styles[i],
         marker=markers["DBEst"],
-        label=f"{display_names['DBEst']} ({int(qp*100)}%)",
+        label=f"{display_names['DBEst']} ({int(qp*100)}%) points",
     )
 
-    ax2.plot(
+    # Polynomial fit (degree 2) for error
+    if len(dbest_filtered) >= 3:
+        poly_coeff = np.polyfit(
+            dbest_filtered["size(KB)"], dbest_filtered["avg_rel_err"], 2
+        )
+        poly_func = np.poly1d(poly_coeff)
+        ax1.plot(
+            x_fit,
+            poly_func(x_fit),
+            color=colors["DBEst"],
+            linestyle=line_styles[i],
+            label=f"{display_names['DBEst']} ({int(qp*100)}%) fit",
+        )
+
+    # Scatter plot for time
+    ax2.scatter(
         dbest_filtered["size(KB)"],
         dbest_filtered["avgtime"],
         color=colors["DBEst"],
-        linestyle=line_styles[i],
         marker=markers["DBEst"],
-        label=f"{display_names['DBEst']} ({int(qp*100)}%)",
+        label=f"{display_names['DBEst']} ({int(qp*100)}%) points",
     )
+
+    # Polynomial fit (degree 2) for time
+    if len(dbest_filtered) >= 3:
+        poly_coeff_time = np.polyfit(
+            dbest_filtered["size(KB)"], dbest_filtered["avgtime"], 2
+        )
+        poly_func_time = np.poly1d(poly_coeff_time)
+        ax2.plot(
+            x_fit,
+            poly_func_time(x_fit),
+            color=colors["DBEst"],
+            linestyle=line_styles[i],
+            label=f"{display_names['DBEst']} ({int(qp*100)}%) fit",
+        )
 
 # Finally plot VerdictDB data for all query percentages
 for i, qp in enumerate(query_percentages):
     vdb_filtered = vdb_data[vdb_data["query_percent"] == qp]
     vdb_filtered = vdb_filtered.sort_values("size(KB)")
 
-    ax1.plot(
+    # Scatter plot for data points
+    ax1.scatter(
         vdb_filtered["size(KB)"],
         vdb_filtered["avg_rel_err"],
         color=colors["VerdictDB"],
-        linestyle=line_styles[i],
         marker=markers["VerdictDB"],
-        label=f"{display_names['VerdictDB']} ({int(qp*100)}%)",
+        label=f"{display_names['VerdictDB']} ({int(qp*100)}%) points",
     )
 
-    ax2.plot(
+    # Polynomial fit (degree 2) for error
+    if len(vdb_filtered) >= 3:
+        poly_coeff = np.polyfit(
+            vdb_filtered["size(KB)"], vdb_filtered["avg_rel_err"], 2
+        )
+        poly_func = np.poly1d(poly_coeff)
+        ax1.plot(
+            x_fit,
+            poly_func(x_fit),
+            color=colors["VerdictDB"],
+            linestyle=line_styles[i],
+            label=f"{display_names['VerdictDB']} ({int(qp*100)}%) fit",
+        )
+
+    # Scatter plot for time
+    ax2.scatter(
         vdb_filtered["size(KB)"],
         vdb_filtered["avg_query_time"],
         color=colors["VerdictDB"],
-        linestyle=line_styles[i],
         marker=markers["VerdictDB"],
-        label=f"{display_names['VerdictDB']} ({int(qp*100)}%)",
+        label=f"{display_names['VerdictDB']} ({int(qp*100)}%) points",
     )
+
+    # Polynomial fit (degree 2) for time
+    if len(vdb_filtered) >= 3:
+        poly_coeff_time = np.polyfit(
+            vdb_filtered["size(KB)"], vdb_filtered["avg_query_time"], 2
+        )
+        poly_func_time = np.poly1d(poly_coeff_time)
+        ax2.plot(
+            x_fit,
+            poly_func_time(x_fit),
+            color=colors["VerdictDB"],
+            linestyle=line_styles[i],
+            label=f"{display_names['VerdictDB']} ({int(qp*100)}%) fit",
+        )
 
 # Configure axes
 ax1.set_xlabel("Size (KB)")
@@ -147,17 +243,30 @@ handles, labels = [], []
 methods_order = ["DM", "VerdictDB", "DBEst"]
 for method in methods_order:
     for i, qp in enumerate(query_percentages):
+        # Add line for fit
         handles.append(
             Line2D(
                 [0],
                 [0],
                 color=colors[method],
-                marker=markers[method],
                 linestyle=line_styles[i],
                 label=f"{display_names[method]} ({int(qp*100)}%)",
             )
         )
         labels.append(f"{display_names[method]} ({int(qp*100)}%)")
+
+        # # Add marker for data points
+        # handles.append(
+        #     Line2D(
+        #         [0],
+        #         [0],
+        #         color=colors[method],
+        #         marker=markers[method],
+        #         linestyle="none",
+        #         label=f"{display_names[method]} ({int(qp*100)}%) points",
+        #     )
+        # )
+        # labels.append(f"{display_names[method]} ({int(qp*100)}%) points")
 
 # Move the legend below the subplots
 fig.legend(
@@ -175,7 +284,7 @@ plt.subplots_adjust(bottom=0.3)  # Increased bottom margin to accommodate the le
 
 # Save the figure
 plt.savefig(
-    f"plots/{data_name}_different_ranges.pdf",
+    f"plots/{data_name}_different_ranges_polyfit.png",
     dpi=200,
     bbox_inches="tight",
 )

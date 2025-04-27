@@ -14,6 +14,8 @@ plt.rcParams.update(
         "ytick.labelsize": fontsize,
         "legend.fontsize": 20,
         "axes.titlesize": fontsize,
+        "font.weight": "bold",
+        "axes.labelweight": "bold",
     }
 )
 
@@ -59,7 +61,7 @@ datasets = {
 # Method colors
 colors = {"DBEst++": "green", "VerdictDB": "orange", "DeepMapping++": "blue"}
 titles = {
-    "pm25": "PM2.5",
+    "pm25": "PM25",
     "ccpp": "CCPP",
     "flights": "Flights",
     "store_sales": "Store Sales",
@@ -128,7 +130,7 @@ def create_broken_axis_plot(fig, gs_pos, data_name, params, show_legend=False):
     # Adjust the y-axis label position with labelpad parameter
     # Higher negative value moves the label higher/closer to the axis
     ax2.set_ylabel("             Average Relative Error", labelpad=20)
-    ax1.set_title(f"{titles[data_name]} Dataset")
+    ax1.set_title(f"{titles[data_name]} Dataset", fontweight="bold")
 
     # Legend is now handled at the figure level, not in individual subplots
 

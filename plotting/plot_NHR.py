@@ -12,6 +12,8 @@ plt.rcParams.update(
         "ytick.labelsize": fontsize,
         "legend.fontsize": 19,
         "axes.titlesize": fontsize,
+        "font.weight": "bold",
+        "axes.labelweight": "bold",
     }
 )
 
@@ -140,7 +142,7 @@ plt.subplots_adjust(bottom=0.26)  # Increased bottom margin to accommodate the l
 
 # Save the figure
 plt.savefig(
-    "plots/pm25_dm_vs_nhr.png",  # Updated filename to reflect the comparison
+    "plots/pm25_dm_vs_nhr.pdf",  # Updated filename to reflect the comparison
     dpi=200,
     bbox_inches="tight",
 )

@@ -12,6 +12,8 @@ plt.rcParams.update(
         "ytick.labelsize": fontsize,
         "legend.fontsize": 19,
         "axes.titlesize": fontsize,
+        "font.weight": "bold",
+        "axes.labelweight": "bold",
     }
 )
 
@@ -177,7 +179,7 @@ plt.subplots_adjust(top=0.78)  # Increased top margin to accommodate the legend
 
 # Save the figure
 plt.savefig(
-    "plots/pm25_dm_vs_nhp_nhr.pdf",  # Updated filename to include all three methods
+    "plots/pm25_dm_vs_nhp_nhr.png",  # Updated filename to include all three methods
     dpi=300,
     bbox_inches="tight",
 )
