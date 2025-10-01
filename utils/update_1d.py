@@ -79,10 +79,11 @@ def get_update_ranges(X_min, X_max, args):
     range_percent = 0.05
     n_decimal = 1 if args.data_name != "pm25" else 0
 
+    range_size = range_percent * (X_max - X_min)
+
     ranges = []
     while nblocks > 0:
-        range_size = range_percent * (X_max - X_min)
-
+    
         X_start = random.uniform(X_min, X_max - range_size) // resolution * resolution
         X_end = X_start + range_size
 

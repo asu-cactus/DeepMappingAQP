@@ -23,3 +23,4 @@ python main.py --data_name store_sales --gpu 1 --allowed_error 5e-4 --lr 1e-3 --
 
 # Insertion
 python main.py --data_name store_sales --gpu 1 --allowed_error 20e-4 --lr 1e-3 --milestone 500 1000 --run_inserts
+python main.py --data_name store_sales --gpu 1 --allowed_error 20e-4 --lr 1e-3 --milestone 500 1000 --run_inserts --uniform_update

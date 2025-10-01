@@ -2,6 +2,7 @@
 
 import json
 import math
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -104,6 +105,10 @@ class DataGen:
         (options, args) = parser.parse_args()
 
         self.options = options
+
+        # Create output directory if it doesn't exist
+        filepath = Path(self.options.output)
+        filepath.parent.mkdir(parents=True, exist_ok=True)
 
         # read sample json
         self.sample_json = None

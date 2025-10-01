@@ -1,4 +1,5 @@
 - [Software Installation](#software-installation)
+  - [Set up PyMySQL](#set-up-pymysql)
 - [Datasets](#datasets)
 - [Run experiments](#run-experiments)
   - [Scale data set](#scale-data-set)
@@ -19,6 +20,20 @@ For DeepMapping-R, install
 ```
 python -m pip install -r requirements.txt
 ```
+
+### Set up PyMySQL
+To set up default password for root user, follow [here](https://stackoverflow.com/questions/39281594/error-1698-28000-access-denied-for-user-rootlocalhost#:~:text=system_user%20(recommended)-,Option%201%3A,-sudo%20mysql%20%2Du):
+```
+sudo mysql -u root # I had to use "sudo" since it was a new installation
+
+mysql> USE mysql;
+mysql> UPDATE user SET plugin='mysql_native_password' WHERE User='root';
+mysql> FLUSH PRIVILEGES;
+mysql> exit;
+
+sudo service mysql restart
+```
+
 
 ## Datasets
 Datasets are publicly available from the web. You can download them via the following links.

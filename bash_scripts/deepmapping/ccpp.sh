@@ -23,3 +23,4 @@ python main.py --data_name ccpp --gpu 0 --allowed_error 0.1e-4 --lr 2e-4 --miles
 
 # Insertion
 python main.py --data_name ccpp --gpu 0 --allowed_error 8e-4 --lr 2e-4 --milestones 300 700 --epochs 2000 --run_inserts
+python main.py --data_name ccpp --gpu 0 --allowed_error 8e-4 --lr 2e-4 --milestones 300 700 --epochs 2000 --run_inserts --uniform_update

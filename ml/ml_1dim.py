@@ -371,7 +371,8 @@ def test_NHR(
 
 def load_ranges_from_json(args):
     folder_name = args.data_name if args.data_name != "store_sales" else "tpc-ds"
-    with open(f"data/update_data/{folder_name}/ranges.json", "r") as f:
+    filename = "ranges_by_size.json" if args.uniform_update else "ranges.json"
+    with open(f"data/update_data/{folder_name}/{filename}", "r") as f:
         json_obj = json.load(f)
 
     for run in json_obj:
@@ -393,7 +394,12 @@ def test_with_inserts(
     model = model.to(device)
 
     # Load queries
-    df_insert = read_insertion_data(args)
+    filename = (
+        "insert_filtered_by_size.csv"
+        if args.uniform_update
+        else "insert_filtered_by_range.csv"
+    )
+    df_insert = read_insertion_data(args, filename)
     batch_size = int(len(df_insert) / args.n_insert_batch)
     indep, dep = args.indeps[0], args.dep
 
@@ -497,4 +503,9 @@ def test_with_inserts(
             )
     # Save results
     df_results = pd.DataFrame(results)
-    df_results.to_csv(f"results/{args.data_name}_DM_insert.csv", index=False)
+    filename = (
+        f"results/{args.data_name}_DM_insert.csv"
+        if args.uniform_update
+        else f"results/{args.data_name}_DM_insert_hotregion.csv"
+    )
+    df_results.to_csv(filename, index=False)

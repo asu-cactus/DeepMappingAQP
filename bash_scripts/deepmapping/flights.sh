@@ -23,3 +23,4 @@ python main.py --data_name flights --gpu 0 --allowed_error 0.3e-4 --lr 5e-4 --mi
 
 # Insertion
 python main.py --data_name flights --gpu 0 --allowed_error 3e-4  --lr 5e-4 --milestones 200 800 --run_inserts
+python main.py --data_name flights --gpu 0 --allowed_error 3e-4  --lr 5e-4 --milestones 200 800 --run_inserts --uniform_update

@@ -12,6 +12,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--task_type", type=str, default="sum", help="Task type")
     parser.add_argument("--ndim_input", type=int, default=1, help="Input dimension")
     parser.add_argument("--from_histogram", action="store_true", help="From sypnosis")
+    parser.add_argument("--uniform_update", action="store_true", help="Uniform update")
 
     args = parser.parse_args()
     print(args)
@@ -95,8 +96,14 @@ def add_insertion_data(args, cur, dep, indep, table_name):
     data_name = args.data_name
 
     foldername = data_name if data_name != "store_sales" else "tpc-ds"
+
+    filename = (
+        "insert_filtered_by_size.csv"
+        if args.uniform_update
+        else "insert_filtered_by_range.csv"
+    )
     df_insert = pd.read_csv(
-        f"data/update_data/{foldername}/insert.csv", header=0, usecols=[dep, indep]
+        f"data/update_data/{foldername}/{filename}", header=0, usecols=[dep, indep]
     )[[dep, indep]]
 
     query_path = f"query/{args.data_name}_insert_{args.ndim_input}D_nonzeros.npz"

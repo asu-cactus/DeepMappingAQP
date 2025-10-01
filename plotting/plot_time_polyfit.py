@@ -9,7 +9,7 @@ plt.rcParams.update(
         "axes.labelsize": fontsize,
         "xtick.labelsize": fontsize,
         "ytick.labelsize": fontsize,
-        "legend.fontsize": 19,
+        "legend.fontsize": 18.5,
         "axes.titlesize": fontsize,
         "font.weight": "bold",
         "axes.labelweight": "bold",
@@ -58,6 +58,21 @@ method_colors = {"DeepMapping-R": "blue", "VerdictDB": "orange", "DBEst++": "gre
 # Create a figure with 2x2 subplots
 fig, axes = plt.subplots(2, 2, figsize=(16, 11))
 
+
+# Function to compute polynomial fit
+def poly_fit(x, y, degree=1):
+    coeffs = np.polyfit(x, y, degree)
+    return coeffs
+
+
+# Create a common x-axis range for ALL polynomial fits
+all_sizes = []
+for data_name, config in dataset_configs.items():
+    df = pd.read_csv(f"results/{data_name}.csv")
+    all_sizes.extend(df["size(KB)"].values)
+
+common_x_fit = np.linspace(min(all_sizes), max(all_sizes), 100)
+
 # Process each dataset and create a subplot
 for data_name, config in dataset_configs.items():
     # Get the position for this dataset's subplot
@@ -74,31 +89,50 @@ for data_name, config in dataset_configs.items():
     for method in df["method"].unique():
         method_data = df[df["method"] == method]
 
-        # Plot regular query time
-        ax.plot(
-            method_data["size(KB)"],
-            method_data["avg_query_time"],
+        # Extract data
+        x_data = method_data["size(KB)"].values
+        y_data = method_data["avg_query_time"].values
+        y_data_t2 = method_data["t2medium_avg_query_time"].values
+
+        # Plot regular query time (scatter)
+        ax.scatter(
+            x_data,
+            y_data,
             marker="o",
             color=method_colors[method],
-            label=(
-                f"{method}" if row == 0 and col == 0 else None
-            ),  # Only add label in first subplot
-            linewidth=2,
-            markersize=6,
+            label=(f"{method}" if row == 0 and col == 0 else None),
+            s=60,
         )
 
-        # Plot t2medium query time
+        # Fit polynomial and plot using the common x-axis
+        poly_coeffs = poly_fit(x_data, y_data)
+        y_fit = np.polyval(poly_coeffs, common_x_fit)
         ax.plot(
-            method_data["size(KB)"],
-            method_data["t2medium_avg_query_time"],
-            marker="s",
-            linestyle="--",
+            common_x_fit,
+            y_fit,
             color=method_colors[method],
-            label=(
-                f"{method} (t2med)" if row == 0 and col == 0 else None
-            ),  # Only add label in first subplot
             linewidth=2,
-            markersize=6,
+        )
+
+        # Plot t2medium query time (scatter)
+        ax.scatter(
+            x_data,
+            y_data_t2,
+            marker="s",
+            color=method_colors[method],
+            label=(f"{method} (t2med)" if row == 0 and col == 0 else None),
+            s=60,
+        )
+
+        # Fit polynomial for t2medium and plot using the common x-axis
+        poly_coeffs_t2 = poly_fit(x_data, y_data_t2)
+        y_fit_t2 = np.polyval(poly_coeffs_t2, common_x_fit)
+        ax.plot(
+            common_x_fit,
+            y_fit_t2,
+            color=method_colors[method],
+            linestyle="--",
+            linewidth=2,
         )
 
     # Add vertical line and point for synopsis
@@ -106,7 +140,7 @@ for data_name, config in dataset_configs.items():
         x=config["sypnosis_size"],
         color="red",
         linestyle="--",
-        label="Synopsis Size" if row == 0 and col == 0 else None,
+        label="Synopsis" if row == 0 and col == 0 else None,
     )
     ax.plot(
         config["sypnosis_size"],
@@ -131,19 +165,69 @@ for data_name, config in dataset_configs.items():
     ax.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
 
 # Create a single legend for the entire figure
-handles, labels = axes[0, 0].get_legend_handles_labels()
+from matplotlib.lines import Line2D
+
+# Create custom legend handles
+legend_elements = []
+for method, color in method_colors.items():
+    # Regular method with solid line and circle marker
+    legend_elements.append(
+        Line2D(
+            [0],
+            [0],
+            marker="o",
+            color=color,
+            label=f"{method} (large-size machine)",
+            markerfacecolor=color,
+            markersize=8,
+            linestyle="-",
+            linewidth=2,
+        )
+    )
+    # t2medium variant with dashed line and square marker
+    legend_elements.append(
+        Line2D(
+            [0],
+            [0],
+            marker="s",
+            color=color,
+            label=f"{method} (small-size machine)",
+            markerfacecolor=color,
+            markersize=8,
+            linestyle="--",
+            linewidth=2,
+        )
+    )
+
+# Add Synopsis line and point
+legend_elements.append(
+    Line2D([0], [0], color="red", linestyle="--", label="Synopsis Size")
+)
+legend_elements.append(
+    Line2D(
+        [0],
+        [0],
+        marker="*",
+        color="red",
+        label="Synopsis Time",
+        markerfacecolor="red",
+        markersize=15,
+        linestyle="none",
+    )
+)
+
+# Place the legend
 fig.legend(
-    handles,
-    labels,
+    handles=legend_elements,
     loc="lower center",
     bbox_to_anchor=(0.5, 0.04),  # Move below the plots
-    ncol=4,
+    ncol=2,
     frameon=True,
 )
 
 # Adjust layout and spacing
 plt.tight_layout()
-plt.subplots_adjust(bottom=0.20)  # Increase bottom margin for the legend
+plt.subplots_adjust(bottom=0.26)  # Increase bottom margin for the legend
 
 # Save the figure
 plt.savefig("plots/all_datasets_time_comparison.pdf", dpi=200, bbox_inches="tight")

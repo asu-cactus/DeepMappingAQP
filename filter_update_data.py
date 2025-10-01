@@ -2,8 +2,41 @@ import pandas as pd
 import json
 import pdb
 from utils.data_utils import read_insertion_data, read_data
-from utils.update_1d import get_update_ranges
+from utils.update_1d import get_update_ranges, Range
 from utils.parse_args import parse_args
+
+
+def filter_insertion_data(args):
+    if args.uniform_update:
+        filter_insertion_by_size(args)
+    else:
+        filter_insertion_by_ranges_and_size(args)
+
+
+def filter_insertion_by_size(args):
+    df_origin = read_insertion_data(args, "insert_origin.csv")
+    replace = len(df_origin) < args.n_insert
+
+    df = df_origin.sample(args.n_insert, replace=replace)
+    df = df.sample(frac=1, random_state=42).reset_index(drop=True)
+    folder_name = args.data_name if args.data_name != "store_sales" else "tpc-ds"
+    df.to_csv(
+        f"data/update_data/{folder_name}/insert_filtered_by_size.csv", index=False
+    )
+
+    indep = args.indeps[0]
+    X_min = int(df_origin[indep].min())
+    X_max = int(df_origin[indep].max())
+    ranges = [Range(X_min, X_max) for _ in range(5)]
+    ranges_for_nruns = [
+        ranges
+        for _ in range(
+            1
+            if args.no_retrain
+            else int(args.n_insert_batch / args.retrain_every_n_insert)
+        )
+    ]
+    save_ranges_as_json(ranges_for_nruns, args)
 
 
 def get_update_ranges_1d(args):
@@ -22,12 +55,13 @@ def save_ranges_as_json(ranges_for_nruns, args):
         json_obj[f"run{i}"] = [{"start": r.start, "end": r.end} for r in ranges]
 
     folder_name = args.data_name if args.data_name != "store_sales" else "tpc-ds"
-    with open(f"data/update_data/{folder_name}/ranges.json", "w") as f:
+    filename = "ranges_by_size.json" if args.uniform_update else "ranges.json"
+    with open(f"data/update_data/{folder_name}/{filename}", "w") as f:
         json.dump(json_obj, f)
 
 
-def filter_insertion_data(args):
-    df_origin = read_insertion_data(args)
+def filter_insertion_by_ranges_and_size(args):
+    df_origin = read_insertion_data(args, "insert_origin.csv")
 
     if args.no_retrain:
         n_runs = 1
@@ -69,7 +103,9 @@ def filter_insertion_data(args):
     # Concatenate all the dfs and save it
     df = pd.concat(dfs)
     folder_name = args.data_name if args.data_name != "store_sales" else "tpc-ds"
-    df.to_csv(f"data/update_data/{folder_name}/insert.csv", index=False)
+    df.to_csv(
+        f"data/update_data/{folder_name}/insert_filtered_by_range.csv", index=False
+    )
 
 
 if __name__ == "__main__":

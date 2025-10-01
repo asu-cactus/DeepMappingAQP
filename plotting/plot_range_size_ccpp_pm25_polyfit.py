@@ -28,8 +28,9 @@ base_dir = "results"
 # Define display names mapping
 display_names = {"DM": "DeepMapping-R", "VerdictDB": "VerdictDB", "DBEst": "DBEst++"}
 colors = {"DM": "blue", "VerdictDB": "orange", "DBEst": "green"}
-markers = {"DM": "o", "DBEst": "s", "VerdictDB": "^"}
+# Replace the markers dictionary to use different markers for percentages instead of methods
 query_percentages = [0.05, 0.1, 0.15]
+markers = {0.05: "o", 0.1: "x", 0.15: "d"}  # Specific markers for each percentage
 line_styles = ["-", "--", "-."]
 methods_order = ["DM", "VerdictDB", "DBEst"]
 
@@ -81,12 +82,12 @@ def plot_dataset(dm_data, dbest_data, vdb_data, ax_error, ax_time, dataset_title
         dm_grouped = dm_filtered.groupby("size(KB)").mean().reset_index()
         dm_grouped = dm_grouped.sort_values("size(KB)")
 
-        # Scatter plot for original points
+        # Scatter plot for original points - use marker based on query percentage
         ax_error.scatter(
             dm_grouped["size(KB)"],
             dm_grouped["avg_rel_err"],
             color=colors["DM"],
-            marker=markers["DM"],
+            marker=markers[qp],
             s=80,  # Size of markers
         )
 
@@ -94,7 +95,7 @@ def plot_dataset(dm_data, dbest_data, vdb_data, ax_error, ax_time, dataset_title
             dm_grouped["size(KB)"],
             dm_grouped["avgtime"],
             color=colors["DM"],
-            marker=markers["DM"],
+            marker=markers[qp],
             s=80,
         )
 
@@ -126,12 +127,12 @@ def plot_dataset(dm_data, dbest_data, vdb_data, ax_error, ax_time, dataset_title
         dbest_filtered = dbest_data[dbest_data["query_percent"] == qp]
         dbest_filtered = dbest_filtered.sort_values("size(KB)")
 
-        # Scatter plot for original points
+        # Scatter plot for original points - use marker based on query percentage
         ax_error.scatter(
             dbest_filtered["size(KB)"],
             dbest_filtered["avg_rel_err"],
             color=colors["DBEst"],
-            marker=markers["DBEst"],
+            marker=markers[qp],
             s=80,
         )
 
@@ -139,7 +140,7 @@ def plot_dataset(dm_data, dbest_data, vdb_data, ax_error, ax_time, dataset_title
             dbest_filtered["size(KB)"],
             dbest_filtered["avgtime"],
             color=colors["DBEst"],
-            marker=markers["DBEst"],
+            marker=markers[qp],
             s=80,
         )
 
@@ -171,12 +172,12 @@ def plot_dataset(dm_data, dbest_data, vdb_data, ax_error, ax_time, dataset_title
         vdb_filtered = vdb_data[vdb_data["query_percent"] == qp]
         vdb_filtered = vdb_filtered.sort_values("size(KB)")
 
-        # Scatter plot for original points
+        # Scatter plot for original points - use marker based on query percentage
         ax_error.scatter(
             vdb_filtered["size(KB)"],
             vdb_filtered["avg_rel_err"],
             color=colors["VerdictDB"],
-            marker=markers["VerdictDB"],
+            marker=markers[qp],
             s=80,
         )
 
@@ -184,7 +185,7 @@ def plot_dataset(dm_data, dbest_data, vdb_data, ax_error, ax_time, dataset_title
             vdb_filtered["size(KB)"],
             vdb_filtered["avg_query_time"],
             color=colors["VerdictDB"],
-            marker=markers["VerdictDB"],
+            marker=markers[qp],
             s=80,
         )
 
@@ -241,7 +242,7 @@ for method in methods_order:
                 [0],
                 [0],
                 color=colors[method],
-                marker=markers[method],
+                marker=markers[qp],  # Use the marker based on query percentage
                 linestyle=line_styles[i],
                 label=f"{display_names[method]} ({int(qp*100)}%)",
             )
@@ -265,7 +266,7 @@ plt.subplots_adjust(bottom=0.20)  # Add space at bottom for legend
 
 # Save the combined figure
 plt.savefig(
-    "plots/ccpp_pm25_different_ranges.png",
+    "plots/ccpp_pm25_different_ranges.pdf",
     dpi=200,
     bbox_inches="tight",
 )

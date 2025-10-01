@@ -1,14 +1,14 @@
-import pandas as pd
-import numpy as np
-import torch
 import math
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import pdb
-
 import os
 import warnings
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
+
+import pandas as pd
+import numpy as np
+import torch
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 
 def read_data(args) -> pd.DataFrame:
@@ -25,12 +25,12 @@ def read_data(args) -> pd.DataFrame:
     return df
 
 
-def read_insertion_data(args) -> pd.DataFrame:
+def read_insertion_data(args, filename) -> pd.DataFrame:
     data_name = args.data_name
     usecols = [args.dep] + args.indeps
     folder_name = data_name if data_name != "store_sales" else "tpc-ds"
     df = pd.read_csv(
-        f"data/update_data/{folder_name}/insert.csv",
+        f"data/update_data/{folder_name}/{filename}",
         header=0,
         usecols=usecols,
     )
@@ -156,8 +156,13 @@ def prepare_full_data_with_insertion(
     bin_edges, histogram = make_histogram1d(df, indep, dep, resolution)
     cum_sum = np.cumsum(histogram)
 
+    filename = (
+        "insert_filtered_by_size.csv"
+        if args.uniform_update
+        else "insert_filtered_by_range.csv"
+    )
+    df_insert = read_insertion_data(args, filename)
     ys = [cum_sum.copy()]
-    df_insert = read_insertion_data(args)
     batch_size = int(len(df_insert) / args.n_insert_batch)
     for i in range(args.n_insert_batch):
         insert_batch = df_insert[batch_size * i : batch_size * (i + 1)]

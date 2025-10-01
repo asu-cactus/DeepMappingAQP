@@ -72,6 +72,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--buffer_capacity", type=int, default=1000, help="Buffer capacity"
     )
+    parser.add_argument(
+        "--uniform_update", action="store_true", help="Uniform update"
+    )
 
     # Deepmapping++ variants
     parser.add_argument(

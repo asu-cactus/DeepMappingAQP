@@ -21,3 +21,4 @@ python main.py --data_name pm25 --gpu 1 --allowed_error 5e-3 --lr 1e-4 --epochs 
 
 # Insertion
 python main.py --data_name pm25 --gpu 1 --allowed_error 5e-3 --lr 1e-4 --epochs 2000 --milestone 1000 2000 --run_inserts
+python main.py --data_name pm25 --gpu 1 --allowed_error 5e-3 --lr 1e-4 --epochs 2000 --milestone 1000 2000 --run_inserts --uniform_update
