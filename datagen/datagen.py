@@ -6,8 +6,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import scipy as sp
-
+from scipy import stats
 from scipy.linalg import eigh, cholesky
 
 # from scipy.stats import norm
@@ -279,14 +278,14 @@ class DataGen:
         # adjust the random seed based on the batch number
         np.random.seed(seed=self.options.seed + batch_number)
 
-        data_rnormal = sp.stats.norm.rvs(
+        data_rnormal = stats.norm.rvs(
             size=(len(self.df.columns), num_samples_to_generate)
         )
         data_rnormal_correlated = np.dot(self.decomposition, data_rnormal)
 
         # convert each value to the its corresponding value of the normal CDF. We could find the CDF empirically,
         # but since our samples follow a normal distribution we know their exact CDF.
-        stdnormcdf = sp.stats.norm.cdf(data_rnormal_correlated)
+        stdnormcdf = stats.norm.cdf(data_rnormal_correlated)
 
         global cc
         cc = 0

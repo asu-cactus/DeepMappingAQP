@@ -10,6 +10,7 @@ resolution_dict = {
     "DISTANCE": 0.1,
     "ARR_DELAY": 0.1,
     "list_price": 0.1,
+    "return_ship_cost": 1.0,
 }
 
 
@@ -98,6 +99,9 @@ def parse_args() -> argparse.Namespace:
         elif args.data_name == "ccpp":
             args.indeps = ["RH"]
             args.dep = "PE"
+        elif args.data_name == "catalog_returns":
+            args.indeps = ["return_ship_cost"]
+            args.dep = "net_loss"
         else:
             raise ValueError(f"No support for {args.data_name} for 1D input")
     else:

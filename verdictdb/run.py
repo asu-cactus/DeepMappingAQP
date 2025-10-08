@@ -190,17 +190,12 @@ if __name__ == "__main__":
 
     table_name = f"{args.data_name}.{dep}"
 
-    insert_str = ""
-    if args.do_insert:
-        if args.uniform_update:
-            insert_str = "_insert"
-        else:
-            insert_str = "_insert_hotregion"
-    save_path = f"results/{args.data_name}_verdictdb{insert_str}.csv"
+    save_path = f"results/{args.data_name}_verdictdb_insert.csv" if args.do_insert else f"results/{args.data_name}_verdictdb.csv"
     # Create scramble table
     verdict_conn = create_verdict_conn()
 
     scramble_table_name, original_size = create_scramble_table(table_name)
+
     query_original(scramble_table_name, original_size, save_path)
     if args.do_insert:
         query_after_insertion(args, scramble_table_name, original_size, save_path)

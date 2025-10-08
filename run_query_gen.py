@@ -58,8 +58,14 @@ def generate_1d_queries_nonzeros(args):
                 break
 
             start_max_index = len(X) - n_resolution - 1
-            sample_size = 10 * args.nqueries
-            indices = np.random.choice(start_max_index, sample_size, replace=False)
+            if 10 * args.nqueries > start_max_index:
+                sample_size = args.nqueries
+            else:
+                sample_size = 10 * args.nqueries
+            try:
+                indices = np.random.choice(start_max_index, sample_size, replace=False)
+            except:
+                pdb.set_trace()
             start = X[indices]
             end = X[indices + n_resolution]
             label = y[indices + n_resolution] - y[indices]
