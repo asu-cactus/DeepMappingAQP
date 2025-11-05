@@ -41,6 +41,10 @@ Datasets are publicly available from the web. You can download them via the foll
 [PM25](https://archive.ics.uci.edu/dataset/381/beijing+pm2+5+data), [CCPP](https://archive.ics.uci.edu/dataset/294/combined+cycle+power+plant), [Flights](https://www.kaggle.com/datasets/usdot/flight-delays), [TPC-DS](https://www.tpc.org/tpcds/)
 
 We generated the Store Sales table with the TPC-DS tools with SF=1.0.
+```
+dsqgen --SCALE 1 --OUTPUT_DIR tpcds_data_SF1
+```
+
 
 ## Run experiments
 ### Scale data set 

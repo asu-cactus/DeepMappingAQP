@@ -11,6 +11,8 @@ resolution_dict = {
     "ARR_DELAY": 0.1,
     "list_price": 0.1,
     "return_ship_cost": 1.0,
+    "partkey": 1.0,
+    "extendedprice": 0.1,
 }
 
 
@@ -73,9 +75,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--buffer_capacity", type=int, default=1000, help="Buffer capacity"
     )
-    parser.add_argument(
-        "--uniform_update", action="store_true", help="Uniform update"
-    )
+    parser.add_argument("--uniform_update", action="store_true", help="Uniform update")
 
     # Deepmapping++ variants
     parser.add_argument(
@@ -102,6 +102,12 @@ def parse_args() -> argparse.Namespace:
         elif args.data_name == "catalog_returns":
             args.indeps = ["return_ship_cost"]
             args.dep = "net_loss"
+        elif args.data_name == "part":
+            args.indeps = ["partkey"]
+            args.dep = "retailprice"
+        elif args.data_name == "lineitem":
+            args.indeps = ["extendedprice"]
+            args.dep = "quantity"
         else:
             raise ValueError(f"No support for {args.data_name} for 1D input")
     else:

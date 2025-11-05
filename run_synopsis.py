@@ -27,6 +27,7 @@ def test(
         for query in queries:
             X, y = query[:2], query[2]
             indices = ((X - X_min) / args.resolutions[0]).round().astype(int)
+            indices = np.clip(indices, 0, len(synopsis) - 1)
             y_out = synopsis[indices]
             y_hat = (y_out[1] - y_out[0]) / args.sample_ratio
 
@@ -47,12 +48,10 @@ def test(
 def main(args):
 
     # Prepare training data
-
     X, synopsis = prepare_training_data(args)
     print(f"synopsis size: {4 * synopsis.size / 1024:.2f} KB")
     X_min = X[0][0] if args.ndim_input == 1 else X[0]
     total_sum = synopsis[-1][0]
-
     # Run test
     query_path = (
         f"query/{args.data_name}_{args.task_type}_{args.ndim_input}D_nonzeros.npz"

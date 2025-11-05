@@ -146,6 +146,12 @@ if __name__ == "__main__":
     elif args.data_name == "ccpp":
         indep = "RH"
         dep = "PE"
+    elif args.data_name == "part":
+        indep = "partkey"
+        dep = "retailprice"
+    elif args.data_name == "lineitem":
+        indep = "extendedprice"
+        dep = "quantity"
     else:
         raise ValueError(f"No support for {args.data_name} for 1D input")
 

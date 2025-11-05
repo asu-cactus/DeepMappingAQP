@@ -185,12 +185,22 @@ if __name__ == "__main__":
     elif args.data_name == "ccpp":
         indep = "RH"
         dep = "PE"
+    elif args.data_name == "part":
+        indep = "partkey"
+        dep = "retailprice"
+    elif args.data_name == "lineitem":
+        indep = "extendedprice"
+        dep = "quantity"
     else:
         raise ValueError(f"No support for {args.data_name} for 1D input")
 
     table_name = f"{args.data_name}.{dep}"
 
-    save_path = f"results/{args.data_name}_verdictdb_insert.csv" if args.do_insert else f"results/{args.data_name}_verdictdb.csv"
+    save_path = (
+        f"results/{args.data_name}_verdictdb_insert.csv"
+        if args.do_insert
+        else f"results/{args.data_name}_verdictdb.csv"
+    )
     # Create scramble table
     verdict_conn = create_verdict_conn()
 

@@ -140,6 +140,7 @@ def prepare_full_data(args) -> tuple[np.ndarray, np.ndarray]:
     X_all, y_all = get_X_and_y(
         df, args.indeps, args.dep, args.ndim_input, args.resolutions
     )
+    # pdb.set_trace()
     return X_all, y_all
 
 
