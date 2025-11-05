@@ -11,6 +11,8 @@ def cleanup_mysql():
     cur.execute("DROP SCHEMA IF EXISTS ccpp")
     cur.execute("DROP SCHEMA IF EXISTS pm25")
     cur.execute("DROP SCHEMA IF EXISTS store_sales")
+    cur.execute("DROP SCHEMA IF EXISTS part")
+    cur.execute("DROP SCHEMA IF EXISTS lineitem")
     cur.close()
 
 
@@ -25,6 +27,8 @@ def cleanup_scramble():
     verdict_conn.sql("DROP ALL SCRAMBLE ccpp.PE;")
     verdict_conn.sql("DROP ALL SCRAMBLE pm25.pm25;")
     verdict_conn.sql("DROP ALL SCRAMBLE store_sales.wholesale_cost;")
+    verdict_conn.sql("DROP ALL SCRAMBLE part.retailprice;")
+    verdict_conn.sql("DROP ALL SCRAMBLE lineitem.quantity;")
 
 
 if __name__ == "__main__":
